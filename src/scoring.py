@@ -206,6 +206,55 @@ def score_major_match(resume: dict, family: dict = None):
     return UNKNOWN, 5, f"专业「{major}」无法判断对口"
 
 
+def score_arrival(resume: dict, family: dict = None):
+    """到岗工期：期望到岗时间越快越好。返回 (state, raw, evidence)。"""
+    avail = (resume.get("expected", {}).get("available_date", "") or "").strip()
+    if not avail:
+        return UNKNOWN, 0, "未填写到岗时间"
+    if any(k in avail for k in ["随时", "立即", "马上"]):
+        return SATISFIED, 10, f"到岗：{avail}"
+    if "1周" in avail or "一周" in avail:
+        return SATISFIED, 9, f"到岗：{avail}"
+    if "2周" in avail or "两周" in avail:
+        return SATISFIED, 8, f"到岗：{avail}"
+    if "1个月" in avail or "一个月" in avail or "月内" in avail:
+        return SATISFIED, 6, f"到岗：{avail}"
+    return UNSATISFIED, 3, f"到岗：{avail}（偏晚）"
+
+
+def score_shift(resume: dict, family: dict = None):
+    """倒班接受：自我评价是否接受倒班/站班。返回 (state, raw, evidence)。"""
+    text = (resume.get("self_evaluation", "") or "").strip()
+    if not text:
+        return UNKNOWN, 0, "无自我评价，倒班意愿未知"
+    if any(k in text for k in ["倒班", "夜班", "两班倒", "三班倒", "站班"]):
+        return SATISFIED, 10, "接受倒班/站班"
+    if any(k in text for k in ["不接受", "不倒班", "不倒"]):
+        return UNSATISFIED, 2, "不接受倒班"
+    return UNKNOWN, 5, "倒班意愿未明确"
+
+
+def score_data_tools(resume: dict, family: dict = None):
+    """数据整理：技能里的 ERP/WMS/Excel/SAP。返回 (state, raw, evidence)。"""
+    skills = [s.strip().lower() for s in (resume.get("skills", []) or [])]
+    tools = ["erp", "wms", "excel", "sap", "sql", "bi"]
+    hits = [t for t in tools if any(t in s for s in skills)]
+    if not hits:
+        return UNSATISFIED, 3, "无数据工具经验（ERP/WMS/Excel）"
+    s = min(10, 5 + len(hits))
+    return SATISFIED, s, f"数据工具：{', '.join(h.upper() for h in hits)}"
+
+
+def score_process(resume: dict, family: dict = None):
+    """流程意识：5S/精益/价值流/标准化。返回 (state, raw, evidence)。"""
+    text = (resume.get("self_evaluation", "") or "") + " " + " ".join(resume.get("skills", []) or [])
+    kw = ["5S", "5s", "精益", "价值流", "标准化", "改善", "定置"]
+    hits = [k for k in kw if k in text]
+    if not hits:
+        return UNKNOWN, 5, "无流程意识信号"
+    return SATISFIED, min(10, 4 + len(hits) * 2), f"流程意识：{'、'.join(hits)}"
+
+
 # ---------- 汇总 ----------
 
 def compute_match(resume: dict, family: dict) -> dict:

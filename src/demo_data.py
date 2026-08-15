@@ -131,7 +131,7 @@ def build_demo_data():
         demo_dims = []
         for d in score["dimension_scores"]:
             w100 = round(d["weight"] * 100)
-            s100 = round(d["score"] * d["weight"] * 10) if d.get("state") in ("满足", "不满足") else 0
+            s100 = round(d["score"] * d["weight"] * 10)
             demo_dims.append({
                 "dimension_name": d["dimension_name"], "weight": w100,
                 "score": s100, "evidence": d["evidence"], "deduction_reason": d["deduction_reason"],
@@ -142,6 +142,7 @@ def build_demo_data():
             "target_job_id": target_job_id,
             "screening_status": score["screening_status"],
             "match_score": score["match_score"],
+            "next_action": score.get("next_action", ""),
             "decision_summary": score["decision_summary"],
             "recommend_reasons": score["recommend_reasons"],
             "pending_reasons": score["pending_reasons"],

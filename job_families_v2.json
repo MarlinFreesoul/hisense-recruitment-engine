@@ -20,10 +20,11 @@
         { "dim": "倒班接受", "evidence": "自我评价.关键词", "judge": "关键词", "rule": "含「接受倒班/夜班/两班倒」" }
       ],
       "soft_scores": [
-        { "dim": "稳定性", "evidence": "工作经历.时间连续性", "judge": "推断", "weight": 0.30, "note": "跳槽频率，1份≥2年为佳" },
-        { "dim": "软实力", "evidence": "自我评价.关键词", "judge": "关键词", "weight": 0.30, "note": "吃苦耐劳/纪律/团队协作" },
-        { "dim": "经验", "evidence": "工作经历.年限+职位", "judge": "规则+语义", "weight": 0.20, "note": "制造业/家电装配经验优先" },
-        { "dim": "技能", "evidence": "技能列表+证书", "judge": "标签匹配", "weight": 0.20, "note": "装配/包装，钳工电工加分" }
+        { "dim": "到岗工期", "evidence": "期望.到岗时间", "judge": "规则", "weight": 0.25, "note": "随时/1周内到岗最佳" },
+        { "dim": "倒班接受", "evidence": "自我评价.关键词", "judge": "关键词", "weight": 0.20, "note": "接受倒班/站班/加班" },
+        { "dim": "制造业经验", "evidence": "工作经历.年限+职位", "judge": "规则+语义", "weight": 0.20, "note": "装配/包装/质检/搬运经验" },
+        { "dim": "稳定性", "evidence": "工作经历.时间连续性", "judge": "推断", "weight": 0.20, "note": "最近一份≥3年为佳" },
+        { "dim": "现场适配", "evidence": "技能列表+自我评价", "judge": "关键词", "weight": 0.15, "note": "5S/安全/质量意识/班组协作" }
       ],
       "deferred_checks": [
         { "dim": "动机/价值观", "stage": "面试", "why": "简历无直接字段" },
@@ -106,10 +107,11 @@
         { "dim": "专业对口", "evidence": "教育.major→专业映射", "judge": "语义", "rule": "采购/物流/供应链/工业工程/企业管理" }
       ],
       "soft_scores": [
-        { "dim": "专业对口", "evidence": "教育.major→专业映射", "judge": "语义", "weight": 0.25 },
-        { "dim": "技能", "evidence": "技能列表+证书", "judge": "标签匹配", "weight": 0.25, "note": "ERP/5S/采购跟单/成本控制" },
-        { "dim": "经验", "evidence": "工作经历.年限+职位", "judge": "规则+语义", "weight": 0.25, "note": "3-4年" },
-        { "dim": "软实力", "evidence": "自我评价.关键词", "judge": "关键词", "weight": 0.25, "note": "谈判/沟通/数据整理" }
+        { "dim": "专业经验", "evidence": "教育.major→专业映射+工作经历", "judge": "语义", "weight": 0.20, "note": "物流/工业工程/供应链" },
+        { "dim": "沟通协同", "evidence": "自我评价.关键词", "judge": "关键词", "weight": 0.25, "note": "跨部门协作/推动多方" },
+        { "dim": "数据整理", "evidence": "技能列表", "judge": "标签匹配", "weight": 0.20, "note": "ERP/WMS/Excel/SAP" },
+        { "dim": "流程意识", "evidence": "技能列表+自我评价", "judge": "关键词", "weight": 0.20, "note": "5S/精益改善/价值流" },
+        { "dim": "稳定落地", "evidence": "工作经历.时间连续性", "judge": "推断", "weight": 0.15, "note": "项目落地/稳定性" }
       ],
       "deferred_checks": [
         { "dim": "谈判能力", "stage": "面试", "why": "简历无直接字段" },

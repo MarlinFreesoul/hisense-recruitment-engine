@@ -20,7 +20,8 @@ import pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 from scoring import (score_stability, score_soft_qualities, score_experience,
-                     score_skills, score_major_match, EDU_LEVELS, UNKNOWN, SATISFIED, UNSATISFIED)
+                     score_skills, score_major_match, score_arrival, score_shift,
+                     score_data_tools, score_process, EDU_LEVELS, UNKNOWN, SATISFIED, UNSATISFIED)
 from jd_generator import load_family
 from risk_filter import risk_report
 from interview import generate_questions, format_questions_text
@@ -175,6 +176,21 @@ def _missing(fields: dict) -> list[str]:
 
 
 # ============== 评分 + 风险 ==============
+def _screening_status(score, edu_pass):
+    """对齐陈老师推荐等级：90-100立即约面 / 80-89电话确认 / 75-79备选 / 45-74待确认 / 0-44不推荐。"""
+    if not edu_pass:
+        return "不推荐", "暂不推进"
+    if score is None:
+        return "待确认", "电话确认"
+    if score >= 90:
+        return "推荐", "立即约面"
+    if score >= 80:
+        return "推荐", "电话确认后约面"
+    if score >= 75:
+        return "推荐", "加入备选"
+    if score >= 45:
+        return "待确认", "电话确认"
+    return "不推荐", "暂不推进"
 RISK_VERIFY_QUESTIONS = {
     "证书核验": "请核验证书原件与有效期",
     "期望错位": "请电话确认求职意向与留存意愿",
@@ -202,7 +218,12 @@ def score_feishu_resume(resume: dict, family: dict) -> dict:
         key, w = dim["dim"], dim.get("weight", 0.0)
         fn = {"稳定性": score_stability, "软实力": score_soft_qualities,
               "经验": score_experience, "技能": score_skills,
-              "专业对口": score_major_match}.get(key)
+              "专业对口": score_major_match,
+              "到岗工期": score_arrival, "倒班接受": score_shift,
+              "制造业经验": score_experience, "现场适配": score_process,
+              "专业经验": score_major_match, "沟通协同": score_soft_qualities,
+              "数据整理": score_data_tools, "流程意识": score_process,
+              "稳定落地": score_stability}.get(key)
         if fn is None:
             dimension_scores.append({"dimension_name": key, "weight": w, "state": "未配置",
                                      "score": 0, "evidence": "", "deduction_reason": ""})
@@ -210,8 +231,10 @@ def score_feishu_resume(resume: dict, family: dict) -> dict:
         state, raw, evidence = fn(resume, family)
         if state == UNKNOWN:
             dimension_scores.append({"dimension_name": key, "weight": w, "state": "未知",
-                                     "score": 0, "evidence": evidence, "deduction_reason": ""})
+                                     "score": raw, "evidence": evidence, "deduction_reason": ""})
             pending_reasons.append(f"{key}：{evidence}")
+            weighted_sum += raw * w
+            applied_weight += w
             continue
         weighted_sum += raw * w
         applied_weight += w
@@ -234,13 +257,14 @@ def score_feishu_resume(resume: dict, family: dict) -> dict:
         for r in risk["risks"] if r["level"] != "低"
     ]
 
-    status = "不推荐" if not edu_pass else ("推荐" if score_100 is not None and score_100 >= 75 else "待确认")
+    status, next_action = _screening_status(score_100, edu_pass)
     decision_summary = f"{status}：" + ("、".join(recommend_reasons[:2]) if recommend_reasons else ("、" .join(reject_reasons[:1]) if reject_reasons else "信息不足"))
 
     return {
         # 陈老师标杆结构
         "match_score": score_100,
         "screening_status": status,
+        "next_action": next_action,
         "decision_summary": decision_summary,
         "recommend_reasons": recommend_reasons,
         "pending_reasons": pending_reasons,
