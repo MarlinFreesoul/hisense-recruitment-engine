@@ -21,7 +21,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 from scoring import (score_stability, score_soft_qualities, score_experience,
                      score_skills, score_major_match, score_arrival, score_shift,
-                     score_data_tools, score_process, EDU_LEVELS, UNKNOWN, SATISFIED, UNSATISFIED)
+                     score_data_tools, score_process, score_communication,
+                     EDU_LEVELS, UNKNOWN, SATISFIED, UNSATISFIED)
 from jd_generator import load_family
 from risk_filter import risk_report
 from interview import generate_questions, format_questions_text
@@ -163,6 +164,7 @@ def feishu_to_resume(fields: dict) -> dict:
         "certificates": certs,
         "self_evaluation": (fields.get("自我评价", "") or fields.get("工作经历简述", "") or ""),
         "expected": {"available_date": fields.get("期望到岗", "") or ""},
+        "risk_signals": (fields.get("风险信号", "") or "").split("、") if fields.get("风险信号") else [],
         "_missing_fields": _missing(fields),
     }
 
@@ -221,7 +223,7 @@ def score_feishu_resume(resume: dict, family: dict) -> dict:
               "专业对口": score_major_match,
               "到岗工期": score_arrival, "倒班接受": score_shift,
               "制造业经验": score_experience, "现场适配": score_process,
-              "专业经验": score_major_match, "沟通协同": score_soft_qualities,
+              "专业经验": score_major_match, "沟通协同": score_communication,
               "数据整理": score_data_tools, "流程意识": score_process,
               "稳定落地": score_stability}.get(key)
         if fn is None:
@@ -248,6 +250,24 @@ def score_feishu_resume(resume: dict, family: dict) -> dict:
 
     total_weight = sum(d.get("weight", 0) for d in family.get("soft_scores", []))
     score_100 = round(weighted_sum / applied_weight * 10, 1) if applied_weight > 0 else None
+
+    # 淘汰信号扣分（对齐陈老师 10/30/60 分层）
+    risk_signals = resume.get("risk_signals", [])
+    penalty = 0
+    reject = False
+    for sig in risk_signals:
+        if any(k in sig for k in ["意向不符", "意向偏离"]):
+            reject = True
+        elif any(k in sig for k in ["薪资"]):
+            penalty += 15
+        elif any(k in sig for k in ["到岗", "急招"]):
+            penalty += 15
+        elif any(k in sig for k in ["无制造", "无精益", "经验不", "不对口"]):
+            penalty += 15
+    if score_100 is not None:
+        score_100 = max(0.0, score_100 - penalty)
+        if reject:
+            score_100 = min(score_100, 44.0)  # 意向不符直接不推荐
     coverage = round(applied_weight / total_weight, 2) if total_weight > 0 else 0.0
 
     risk = risk_report(resume)

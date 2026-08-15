@@ -106,6 +106,9 @@ def score_stability(resume: dict, family: dict = None):
     work = resume.get("work_experience", []) or []
     if not work:
         return UNKNOWN, 0, "无工作经历记录"
+    # 经历明细缺失（只有年限数字，无职位/公司）→ 无法判断稳定性
+    if not any((w.get("position", "") or "") or (w.get("company", "") or "") for w in work):
+        return UNKNOWN, 2, "工作经历无明细，稳定性无法判断"
     y = _latest_years(work)
     if y >= 5: return SATISFIED, 10, f"最近一段工作 {y} 年，非常稳定"
     if y >= 3: return SATISFIED, 9, f"最近一段工作 {y} 年，稳定"
@@ -133,6 +136,9 @@ def score_experience(resume: dict, family: dict = None):
     work = resume.get("work_experience", []) or []
     if not work:
         return UNKNOWN, 0, "无工作经历"
+    # 经历明细缺失（只有年限数字，无职位/公司）→ 无法判断制造业经验
+    if not any((w.get("position", "") or "") or (w.get("company", "") or "") for w in work):
+        return UNKNOWN, 2, "工作经历无明细，制造业经验无法判断"
     total = _total_years(work)
     matched = any(
         any(k in ((w.get("position", "") or "") + (w.get("company", "") or ""))
@@ -195,7 +201,7 @@ def score_major_match(resume: dict, family: dict = None):
     无专业→未知（不再计 0 分）；对口 10、不对口 3、无法判断 5。返回 (state, raw, evidence)。"""
     major = (resume.get("education", {}).get("major", "") or "").strip()
     if not major:
-        return UNKNOWN, 0, "简历未填写专业"
+        return UNKNOWN, 2, "简历未填写专业"
     family_name = (family or {}).get("name", "")
     for group in load_major_mapping()["major_groups"]:
         if any(k in major for k in group["keywords"]):
@@ -203,7 +209,7 @@ def score_major_match(resume: dict, family: dict = None):
             if hit:
                 return SATISFIED, 10, f"专业「{major}」对口"
             return UNSATISFIED, 3, f"专业「{major}」与岗位不对口"
-    return UNKNOWN, 5, f"专业「{major}」无法判断对口"
+    return UNKNOWN, 2, f"专业「{major}」无法判断对口"
 
 
 def score_arrival(resume: dict, family: dict = None):
@@ -218,7 +224,7 @@ def score_arrival(resume: dict, family: dict = None):
     if "2周" in avail or "两周" in avail:
         return SATISFIED, 8, f"到岗：{avail}"
     if "1个月" in avail or "一个月" in avail or "月内" in avail:
-        return SATISFIED, 6, f"到岗：{avail}"
+        return SATISFIED, 8, f"到岗：{avail}"
     return UNSATISFIED, 3, f"到岗：{avail}（偏晚）"
 
 
@@ -253,6 +259,16 @@ def score_process(resume: dict, family: dict = None):
     if not hits:
         return UNKNOWN, 5, "无流程意识信号"
     return SATISFIED, min(10, 4 + len(hits) * 2), f"流程意识：{'、'.join(hits)}"
+
+
+def score_communication(resume: dict, family: dict = None):
+    """沟通协同：跨部门协作/推动多方。返回 (state, raw, evidence)。"""
+    text = (resume.get("self_evaluation", "") or "") + " " + " ".join(resume.get("skills", []) or [])
+    kw = ["沟通", "协作", "协同", "推动", "跨部门", "协调", "谈判", "主导", "多方"]
+    hits = [k for k in kw if k in text]
+    if not hits:
+        return UNKNOWN, 5, "沟通协同信号不足"
+    return SATISFIED, min(10, 5 + len(hits)), f"沟通协同：{'、'.join(hits)}"
 
 
 # ---------- 汇总 ----------
