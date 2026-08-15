@@ -19,13 +19,17 @@ import pathlib
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
-from scoring import score_stability, score_soft_qualities, score_experience, score_skills, score_major_match, EDU_LEVELS
+from scoring import (score_stability, score_soft_qualities, score_experience,
+                     score_skills, score_major_match, EDU_LEVELS, UNKNOWN)
 from jd_generator import load_family
 from risk_filter import risk_report
+from interview import generate_questions, format_questions_text
+from talent import write_progress
 
 # ============== 飞书配置（凭证从 config.py / .env 读，不硬编码） ==============
 from config import FEISHU_APP_ID, FEISHU_APP_SECRET, FEISHU_BASE_TOKEN, \
-    JD_TABLE_ID, RESUME_TABLE_ID, RESULT_TABLE_ID
+    JD_TABLE_ID, RESUME_TABLE_ID, RESULT_TABLE_ID, WEIGHT_TABLE_ID, \
+    INTERVIEW_TABLE_ID, PROGRESS_TABLE_ID
 
 BASE_APP_TOKEN = FEISHU_BASE_TOKEN
 
@@ -109,6 +113,33 @@ def match_job_family(job_name: str):
     return None
 
 
+# ============== 飞书权重配置 ==============
+def load_weights_from_feishu(feishu) -> dict:
+    """从飞书「权重配置表」读权重，返回 {岗位族key: {维度: weight}}。HR 在飞书改权重实时生效。"""
+    weights = {}
+    for r in feishu.get_records(WEIGHT_TABLE_ID):
+        f = r["fields"]
+        family_key = f.get("岗位族", "")
+        dim = f.get("维度", "")
+        w = f.get("权重", 0)
+        if family_key and dim:
+            try:
+                weights.setdefault(family_key, {})[dim] = float(w)
+            except (TypeError, ValueError):
+                pass
+    return weights
+
+
+def apply_feishu_weights(family: dict, weights: dict) -> dict:
+    """用飞书权重覆盖 family 的 soft_scores 权重（不改动 JSON 原文件）。"""
+    if not weights:
+        return family
+    for dim in family.get("soft_scores", []):
+        if dim["dim"] in weights:
+            dim["weight"] = weights[dim["dim"]]
+    return family
+
+
 # ============== 字段映射 ==============
 def feishu_to_resume(fields: dict) -> dict:
     certs_text = fields.get("证书", "") or ""
@@ -154,31 +185,46 @@ def score_feishu_resume(resume: dict, family: dict) -> dict:
     edu_pass = EDU_LEVELS.get(degree, 0) >= need
 
     soft_detail = []
-    total = 0.0
+    weighted_sum = 0.0
+    applied_weight = 0.0
     for dim in family.get("soft_scores", []):
         key, w = dim["dim"], dim.get("weight", 0.0)
         fn = {"稳定性": score_stability, "软实力": score_soft_qualities,
-              "经验": lambda r, f: score_experience(r, f), "技能": lambda r, f: score_skills(r, f),
-              "专业对口": lambda r, f: score_major_match(r, f)}.get(key)
-        raw = fn(resume, family) if fn else 0
-        total += raw * w
-        soft_detail.append({"dim": key, "weight": w, "raw": raw, "weighted": round(raw * w, 2)})
+              "经验": score_experience, "技能": score_skills,
+              "专业对口": score_major_match}.get(key)
+        if fn is None:
+            soft_detail.append({"dim": key, "weight": w, "state": "未配置", "raw": None})
+            continue
+        state, raw = fn(resume, family)
+        if state == UNKNOWN:
+            # 未知维度：剔除分母，不惩罚、不计分
+            soft_detail.append({"dim": key, "weight": w, "state": "未知", "raw": raw})
+            continue
+        weighted_sum += raw * w
+        applied_weight += w
+        soft_detail.append({"dim": key, "weight": w, "state": state, "raw": raw,
+                            "weighted": round(raw * w, 2)})
 
-    score_100 = round(total * 10, 1)
+    total_weight = sum(d.get("weight", 0) for d in family.get("soft_scores", []))
+    score_100 = round(weighted_sum / applied_weight * 10, 1) if applied_weight > 0 else None
+    coverage = round(applied_weight / total_weight, 2) if total_weight > 0 else 0.0
+
     risk = risk_report(resume)
     return {
         "硬性通过": edu_pass,
         "软条件明细": soft_detail,
         "匹配度": score_100,
         "等级": _grade(score_100, edu_pass),
+        "信息覆盖度": coverage,
         "风险等级": risk["overall_level"],
         "风险点": [r for r in risk["risks"] if r["level"] != "低"],
         "字段缺口": resume.get("_missing_fields", []),
     }
 
 
-def _grade(score: float, hard_pass: bool) -> str:
+def _grade(score, hard_pass: bool) -> str:
     if not hard_pass: return "不推荐"
+    if score is None: return "信息不足"
     if score >= 90: return "A级"
     if score >= 75: return "B级"
     if score >= 60: return "C级"
@@ -200,6 +246,7 @@ def make_summary(resume: dict, s: dict) -> str:
 # ============== 主流程 ==============
 def run_matching(top_n: int = 5, write_back: bool = True) -> dict:
     feishu = FeishuClient()
+    feishu_weights = load_weights_from_feishu(feishu)  # 读飞书权重配置
     print("[1/4] 读招聘需求...")
     jd_records = [r for r in feishu.get_records(JD_TABLE_ID) if r["fields"].get("岗位名称")]
     print(f"    找到 {len(jd_records)} 个岗位")
@@ -217,6 +264,7 @@ def run_matching(top_n: int = 5, write_back: bool = True) -> dict:
             results.append({"岗位名称": job_name, "岗位族": "未识别", "候选人数": 0, "TOP": []})
             continue
         family = load_family(family_key)
+        family = apply_feishu_weights(family, feishu_weights.get(family_key, {}))  # 应用飞书权重
         print(f"[3/4] 岗位「{job_name}」→ 岗位族「{family['name']}」")
 
         scored = []
@@ -229,7 +277,7 @@ def run_matching(top_n: int = 5, write_back: bool = True) -> dict:
             scored.append(s)
         scored.sort(key=lambda x: x["匹配度"], reverse=True)
 
-        results.append({"岗位名称": job_name, "岗位族": family["name"],
+        results.append({"岗位名称": job_name, "岗位族": family["name"], "family_key": family_key,
                         "候选人数": len(scored), "TOP": scored[:top_n]})
 
         if write_back:
@@ -247,6 +295,25 @@ def run_matching(top_n: int = 5, write_back: bool = True) -> dict:
         r = feishu.create_records(RESULT_TABLE_ID, write_rows)
         print(f"    写回结果: code={r.get('code')} {r.get('msg', '')}")
 
+    if write_back:
+        # 下游：面试题 + 招聘进度
+        interview_rows, progress_rows = [], []
+        for jr in results:
+            if jr["岗位族"] == "未识别":
+                continue
+            progress_rows.append({"岗位名称": jr["岗位名称"], "需求人数": 0, "当前状态": "招聘中"})
+            for c in jr["TOP"]:
+                if c["等级"] in ("A级", "B级"):
+                    qs = generate_questions(jr["family_key"], None, c.get("风险点", []))
+                    interview_rows.append({"候选人姓名": c["候选人"], "面试阶段": "待面试",
+                                           "面试记录": format_questions_text(qs)})
+        if interview_rows:
+            ir = feishu.create_records(INTERVIEW_TABLE_ID, interview_rows)
+            print(f"    面试记录写回 {len(interview_rows)} 条: code={ir.get('code')}")
+        if progress_rows:
+            pr = feishu.create_records(PROGRESS_TABLE_ID, progress_rows)
+            print(f"    招聘进度写回 {len(progress_rows)} 条: code={pr.get('code')}")
+
     return {"success": True, "匹配时间": time.strftime("%Y-%m-%d %H:%M:%S"), "结果": results}
 
 
@@ -255,10 +322,14 @@ def report_text(data: dict) -> str:
     for job in data.get("结果", []):
         lines += ["-" * 60, f"🏢 岗位: {job['岗位名称']}（{job['岗位族']}）", f"📊 候选人数: {job['候选人数']}", "", "【TOP】", ""]
         for c in job.get("TOP", []):
-            lines.append(f"  {c['候选人']} → {c['匹配度']}分 · {c['等级']} · 风险{c['风险等级']}")
+            cov = c.get("信息覆盖度", 0)
+            lines.append(f"  {c['候选人']} → {c['匹配度']}分 · {c['等级']} · 风险{c['风险等级']} · 覆盖度{cov}")
             lines.append(f"      {c['匹配总结']}")
-            if c.get("字段缺口"):
-                lines.append(f"      ⚠️ 字段缺口: {', '.join(c['字段缺口'])}")
+            states = " | ".join(f"{d['dim']}{d.get('state','')[:2]}" for d in c.get('软条件明细', [])[:5])
+            if states:
+                lines.append(f"      维度: {states}")
+            if cov < 0.6:
+                lines.append(f"      ⚠️ 信息覆盖不足({cov})，建议人工补采")
             lines.append("")
     return "\n".join(lines)
 

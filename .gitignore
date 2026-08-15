@@ -4,3 +4,11 @@ __pycache__/
 *.egg-info/
 .env
 matching_report.txt
+
+# 前端 webapp
+webapp/node_modules/
+webapp/.wrangler/
+webapp/dev.log
+webapp/.next/
+webapp/.env
+api.log

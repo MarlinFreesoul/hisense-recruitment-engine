@@ -42,11 +42,10 @@
         { "dim": "专业对口", "evidence": "教育.major→专业映射", "judge": "语义", "rule": "理工科" }
       ],
       "soft_scores": [
-        { "dim": "软实力", "evidence": "自我评价.关键词", "judge": "关键词", "weight": 0.30, "note": "沟通/抗压/执行力" },
-        { "dim": "学历", "evidence": "教育.degree", "judge": "规则", "weight": 0.25 },
-        { "dim": "专业对口", "evidence": "教育.major→专业映射", "judge": "语义", "weight": 0.20 },
-        { "dim": "经验", "evidence": "工作经历.年限+职位", "judge": "规则+语义", "weight": 0.15, "note": "有班组/管理经历优先" },
-        { "dim": "技能", "evidence": "技能列表+证书", "judge": "标签匹配", "weight": 0.10, "note": "5S/SAP/计划" }
+        { "dim": "软实力", "evidence": "自我评价.关键词", "judge": "关键词", "weight": 0.40, "note": "沟通/抗压/执行力" },
+        { "dim": "专业对口", "evidence": "教育.major→专业映射", "judge": "语义", "weight": 0.25 },
+        { "dim": "经验", "evidence": "工作经历.年限+职位", "judge": "规则+语义", "weight": 0.20, "note": "有班组/管理经历优先" },
+        { "dim": "技能", "evidence": "技能列表+证书", "judge": "标签匹配", "weight": 0.15, "note": "5S/SAP/计划" }
       ],
       "deferred_checks": [
         { "dim": "从一线轮岗意愿", "stage": "面试", "why": "简历无直接字段" },

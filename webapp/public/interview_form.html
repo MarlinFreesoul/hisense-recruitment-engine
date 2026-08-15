@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>海信招聘 · 面试信息采集</title>
+  <style>
+    body { font-family: -apple-system, "PingFang SC", sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; }
+    h1 { font-size: 22px; }
+    .q { margin: 20px 0; }
+    .q label { font-weight: 600; display: block; margin-bottom: 8px; }
+    .q .opt { display: block; margin: 4px 0; }
+    .q input[type=text] { width: 100%; padding: 8px; font-size: 15px; border: 1px solid #ccc; border-radius: 6px; }
+    button { background: #1a73e8; color: #fff; border: none; padding: 10px 24px; font-size: 16px; border-radius: 6px; cursor: pointer; }
+    #msg { margin-top: 12px; color: #0a7d33; font-weight: 600; }
+    .error { color: #c00; }
+  </style>
+</head>
+<body>
+  <h1>面试信息采集</h1>
+  <p id="loading">加载问题中…</p>
+  <div id="form"></div>
+  <div id="msg"></div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const candidate = params.get('candidate') || '';
+    // 后端地址：默认本地 8000，可用 ?api=http://xxx 覆盖
+    const API = params.get('api') || 'http://localhost:8000';
+
+    async function load() {
+      try {
+        const resp = await fetch(`${API}/interview/questions?candidate=${encodeURIComponent(candidate)}`);
+        const data = await resp.json();
+        if (data.error) throw new Error(data.error);
+        render(data);
+      } catch (e) {
+        document.getElementById('loading').innerHTML = `<span class="error">加载失败：${e.message}</span>`;
+      }
+    }
+
+    function render(data) {
+      document.getElementById('loading').style.display = 'none';
+      const form = document.getElementById('form');
+      const name = data.candidate || '';
+      form.innerHTML = `<p>候选人：<b>${name}</b>　岗位：<b>${data.job || ''}</b></p>`;
+
+      (data.questions || []).forEach(q => {
+        const div = document.createElement('div');
+        div.className = 'q';
+        const label = document.createElement('label');
+        label.textContent = `【${q['维度']}】${q['问题']}`;
+        div.appendChild(label);
+
+        if (q['类型'] === '单选') {
+          (q['选项'] || []).forEach(opt => {
+            const lab = document.createElement('label');
+            lab.className = 'opt';
+            lab.innerHTML = `<input type="radio" name="${q.id}" value="${opt}"> ${opt}`;
+            div.appendChild(lab);
+          });
+        } else {
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.name = q.id;
+          input.placeholder = '请输入';
+          div.appendChild(input);
+        }
+        form.appendChild(div);
+      });
+
+      const btn = document.createElement('button');
+      btn.textContent = '提交';
+      btn.onclick = submit;
+      form.appendChild(btn);
+    }
+
+    async function submit() {
+      const answers = {};
+      document.querySelectorAll('#form input').forEach(el => {
+        if (el.type === 'radio') {
+          if (el.checked) answers[el.name] = el.value;
+        } else {
+          answers[el.name] = el.value;
+        }
+      });
+      const resp = await fetch(`${API}/interview/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ candidate, answers })
+      });
+      const data = await resp.json();
+      document.getElementById('msg').textContent = data.error ? ('提交失败：' + data.error) : '✅ 提交成功，感谢配合！';
+      if (data.error) document.getElementById('msg').className = 'error';
+    }
+
+    load();
+  </script>
+</body>
+</html>

@@ -32,6 +32,10 @@ FEISHU_BASE_TOKEN = os.getenv("FEISHU_BASE_TOKEN", "Jy6Rbb2m5aJPoNswNWzcOhm9npg"
 JD_TABLE_ID = os.getenv("JD_TABLE_ID", "tblizVYaGfzcPBak")          # 招聘需求表
 RESUME_TABLE_ID = os.getenv("RESUME_TABLE_ID", "tblNcaGuBlskCm8x")  # 简历库
 RESULT_TABLE_ID = os.getenv("RESULT_TABLE_ID", "tblqA6EPmKoM7Ei3")  # 评分结果表
+WEIGHT_TABLE_ID = os.getenv("WEIGHT_TABLE_ID", "tblfY4SisSRMlXrc")  # 权重配置表
+INTERVIEW_TABLE_ID = os.getenv("INTERVIEW_TABLE_ID", "tblbFeWzLARIFqL8")  # 面试记录表
+PROGRESS_TABLE_ID = os.getenv("PROGRESS_TABLE_ID", "tbl7llDoJwAZu3fP")    # 招聘进度管理表
+INTERVIEW_COLLECT_TABLE_ID = os.getenv("INTERVIEW_COLLECT_TABLE_ID", "tblhzLcVQeJCgHWP")  # 面试采集表
 
 # ============ LLM（DeepSeek） ============
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
