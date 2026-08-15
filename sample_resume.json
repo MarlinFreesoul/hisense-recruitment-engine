@@ -1,0 +1,33 @@
+{
+  "name": "候选人A",
+  "age_range": "25-30岁",
+  "education": {
+    "degree": "大专",
+    "major": "机械制造",
+    "school": "某职业技术学院",
+    "period": "2020-09 ~ 2023-06"
+  },
+  "work_experience": [
+    {
+      "company": "某家电制造有限公司",
+      "position": "装配工",
+      "period": "2023-07 ~ 至今",
+      "duration_years": 3,
+      "duties": ["冰箱装配线装配", "压缩机安装", "管路连接", "外壳装配", "产线点检维护"],
+      "achievements": ["装配效率提升10%", "连续两年班组优秀员工"]
+    }
+  ],
+  "skills": ["装配", "质检", "钳工", "电工", "生产线操作"],
+  "certificates": [
+    { "name": "电工证", "expiry": "未注明" },
+    { "name": "钳工证", "expiry": "未注明" }
+  ],
+  "self_evaluation": "工作认真负责，能吃苦耐劳，接受倒班安排，具备团队协作精神",
+  "expected": {
+    "target_position": "装配包装工/生产普工",
+    "job_type": "正式工",
+    "expected_salary": "5500元/月",
+    "available_date": "1个月内到岗",
+    "career_intention": "生产管理方向"
+  }
+}

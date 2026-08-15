@@ -1,0 +1,6 @@
+# 海信 AI 招聘智能体 · 依赖
+PyMuPDF>=1.24        # 简历 PDF 文本抽取（resume_parser）
+requests>=2.31       # 飞书开放平台 API + DeepSeek LLM 调用
+fastapi>=0.110       # API 服务（api/server.py）
+uvicorn>=0.27        # ASGI 服务器
+pydantic>=2.0        # 数据校验

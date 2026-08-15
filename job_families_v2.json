@@ -1,0 +1,142 @@
+{
+  "meta": {
+    "name": "海信容声岗位分类图谱 v2（简历可锚定版）",
+    "version": "v2",
+    "updated": "2026-08-15",
+    "principle": "双向锚定：每个匹配维度必须回溯到简历真实字段或可观测代理；简历里抽不到的维度，移出快速筛选，交给面试/背调/体检。",
+    "source": "同事调研文档 + BOSS 115条 + 51job 308条 + 校招岗样本验证"
+  },
+  "job_families": [
+    {
+      "key": "firstline",
+      "name": "一线生产/操作",
+      "representative": ["装配工", "包装工", "普工", "小时工", "临时工"],
+      "salary_band": "5-7K/月 或 180-210元/天",
+      "skill_model": { "required": ["装配", "包装", "生产线操作"], "preferred": ["钳工", "电工", "质检"] },
+      "hard_filters": [
+        { "dim": "年龄", "evidence": "基本信息.age", "judge": "规则", "rule": "18-45岁" },
+        { "dim": "学历", "evidence": "教育.degree", "judge": "规则", "rule": "学历不限" },
+        { "dim": "到岗意愿", "evidence": "期望.到岗时间", "judge": "规则", "rule": "越快越好（1个月内优先）" },
+        { "dim": "倒班接受", "evidence": "自我评价.关键词", "judge": "关键词", "rule": "含「接受倒班/夜班/两班倒」" }
+      ],
+      "soft_scores": [
+        { "dim": "稳定性", "evidence": "工作经历.时间连续性", "judge": "推断", "weight": 0.30, "note": "跳槽频率，1份≥2年为佳" },
+        { "dim": "软实力", "evidence": "自我评价.关键词", "judge": "关键词", "weight": 0.30, "note": "吃苦耐劳/纪律/团队协作" },
+        { "dim": "经验", "evidence": "工作经历.年限+职位", "judge": "规则+语义", "weight": 0.20, "note": "制造业/家电装配经验优先" },
+        { "dim": "技能", "evidence": "技能列表+证书", "judge": "标签匹配", "weight": 0.20, "note": "装配/包装，钳工电工加分" }
+      ],
+      "deferred_checks": [
+        { "dim": "动机/价值观", "stage": "面试", "why": "简历无直接字段" },
+        { "dim": "技能真实性", "stage": "面试STAR+背调", "why": "简历无直接字段" },
+        { "dim": "健康/犯罪记录", "stage": "体检/背调", "why": "简历无直接字段" }
+      ]
+    },
+    {
+      "key": "production-management",
+      "name": "现场管理/生产管培",
+      "representative": ["生产管培生", "班组长", "储备干部"],
+      "salary_band": "6-8K/月（管培）；9-12K/月（班组长）",
+      "skill_model": { "required": ["生产计划", "质量意识", "设备基础", "物料管理"], "preferred": ["班组管理", "5S", "SAP"] },
+      "hard_filters": [
+        { "dim": "学历", "evidence": "教育.degree", "judge": "规则", "rule": "本科" },
+        { "dim": "专业对口", "evidence": "教育.major→专业映射", "judge": "语义", "rule": "理工科" }
+      ],
+      "soft_scores": [
+        { "dim": "软实力", "evidence": "自我评价.关键词", "judge": "关键词", "weight": 0.30, "note": "沟通/抗压/执行力" },
+        { "dim": "学历", "evidence": "教育.degree", "judge": "规则", "weight": 0.25 },
+        { "dim": "专业对口", "evidence": "教育.major→专业映射", "judge": "语义", "weight": 0.20 },
+        { "dim": "经验", "evidence": "工作经历.年限+职位", "judge": "规则+语义", "weight": 0.15, "note": "有班组/管理经历优先" },
+        { "dim": "技能", "evidence": "技能列表+证书", "judge": "标签匹配", "weight": 0.10, "note": "5S/SAP/计划" }
+      ],
+      "deferred_checks": [
+        { "dim": "从一线轮岗意愿", "stage": "面试", "why": "简历无直接字段" },
+        { "dim": "抗压与倒班接受", "stage": "面试", "why": "需面谈确认" },
+        { "dim": "管理潜力", "stage": "面试STAR", "why": "冰山以下" }
+      ]
+    },
+    {
+      "key": "process-equipment",
+      "name": "工艺/IE/设备",
+      "representative": ["现场工艺工程师", "IE工程师", "设备维修工程师", "模具工程师"],
+      "salary_band": "9-18K/月（13薪）",
+      "skill_model": { "required": ["工序优化", "工艺控制", "工装器具", "异常改善"], "preferred": ["PLC", "绘图软件", "IE/QC工具", "5S"] },
+      "hard_filters": [
+        { "dim": "学历", "evidence": "教育.degree", "judge": "规则", "rule": "本科" },
+        { "dim": "专业对口", "evidence": "教育.major→专业映射", "judge": "语义", "rule": "机械/电气/制冷/能源动力/高分子材料" }
+      ],
+      "soft_scores": [
+        { "dim": "技能", "evidence": "技能列表+证书", "judge": "标签匹配", "weight": 0.30, "note": "工序优化/PLC/绘图软件" },
+        { "dim": "专业对口", "evidence": "教育.major→专业映射", "judge": "语义", "weight": 0.30 },
+        { "dim": "经验", "evidence": "工作经历.年限+职位", "judge": "规则+语义", "weight": 0.20, "note": "家电行业1-4年" },
+        { "dim": "软实力", "evidence": "自我评价.关键词", "judge": "关键词", "weight": 0.20, "note": "严谨/分析/现场改善" }
+      ],
+      "deferred_checks": [
+        { "dim": "现场问题处理经验真实性", "stage": "面试STAR", "why": "简历可写但需验证" },
+        { "dim": "问题解决能力", "stage": "面试", "why": "冰山以下" }
+      ]
+    },
+    {
+      "key": "quality",
+      "name": "质量/测试/检验",
+      "representative": ["质检员", "现场质量工程师", "整机性能测试员", "品保部长"],
+      "salary_band": "5-7K/月（质检）；12-35K/月（工程师/部长）",
+      "skill_model": { "required": ["检验", "质量记录", "统计分析"], "preferred": ["ISO9001", "六西格玛", "供应商审核"] },
+      "hard_filters": [
+        { "dim": "学历", "evidence": "教育.degree", "judge": "规则", "rule": "本科" },
+        { "dim": "专业对口", "evidence": "教育.major→专业映射", "judge": "语义", "rule": "质量/机械/电气/材料成型/制冷" }
+      ],
+      "soft_scores": [
+        { "dim": "技能", "evidence": "技能列表+证书", "judge": "标签匹配", "weight": 0.30, "note": "ISO9001/六西格玛/检验/统计" },
+        { "dim": "专业对口", "evidence": "教育.major→专业映射", "judge": "语义", "weight": 0.25 },
+        { "dim": "经验", "evidence": "工作经历.年限+职位", "judge": "规则+语义", "weight": 0.25, "note": "家电品质1-5年" },
+        { "dim": "软实力", "evidence": "自我评价.关键词", "judge": "关键词", "weight": 0.20, "note": "严谨/分析/协调" }
+      ],
+      "deferred_checks": [
+        { "dim": "体系实操能力", "stage": "面试", "why": "简历可写但需验证" },
+        { "dim": "数据分析能力", "stage": "面试", "why": "冰山以下" }
+      ]
+    },
+    {
+      "key": "procurement-logistics",
+      "name": "采购/物流/计划",
+      "representative": ["采购执行工程师", "仓储物流", "计划管理", "精益物流工程师"],
+      "salary_band": "8-18K/月（13薪）",
+      "skill_model": { "required": ["采购跟单", "供应商沟通", "成本控制"], "preferred": ["ERP", "5S", "谈判"] },
+      "hard_filters": [
+        { "dim": "学历", "evidence": "教育.degree", "judge": "规则", "rule": "本科" },
+        { "dim": "专业对口", "evidence": "教育.major→专业映射", "judge": "语义", "rule": "采购/物流/供应链/工业工程/企业管理" }
+      ],
+      "soft_scores": [
+        { "dim": "专业对口", "evidence": "教育.major→专业映射", "judge": "语义", "weight": 0.25 },
+        { "dim": "技能", "evidence": "技能列表+证书", "judge": "标签匹配", "weight": 0.25, "note": "ERP/5S/采购跟单/成本控制" },
+        { "dim": "经验", "evidence": "工作经历.年限+职位", "judge": "规则+语义", "weight": 0.25, "note": "3-4年" },
+        { "dim": "软实力", "evidence": "自我评价.关键词", "judge": "关键词", "weight": 0.25, "note": "谈判/沟通/数据整理" }
+      ],
+      "deferred_checks": [
+        { "dim": "谈判能力", "stage": "面试", "why": "简历无直接字段" },
+        { "dim": "供应商异常处理经验", "stage": "面试STAR", "why": "需行为证据" }
+      ]
+    },
+    {
+      "key": "rnd-engineering",
+      "name": "研发/工程技术",
+      "representative": ["嵌入式高级软件开发工程师", "安全工程师"],
+      "salary_band": "18-55K/月",
+      "skill_model": { "required": ["嵌入式", "PLC", "安全体系"], "preferred": ["单片机", "电路控制", "EHS"] },
+      "hard_filters": [
+        { "dim": "学历", "evidence": "教育.degree", "judge": "规则", "rule": "本科" },
+        { "dim": "专业对口", "evidence": "教育.major→专业映射", "judge": "语义", "rule": "计算机/电子/安全工程" }
+      ],
+      "soft_scores": [
+        { "dim": "技能", "evidence": "技能列表+证书", "judge": "标签匹配", "weight": 0.35, "note": "嵌入式/PLC/安全体系" },
+        { "dim": "专业对口", "evidence": "教育.major→专业映射", "judge": "语义", "weight": 0.25 },
+        { "dim": "经验", "evidence": "工作经历.年限+职位", "judge": "规则+语义", "weight": 0.25, "note": "3-6年" },
+        { "dim": "软实力", "evidence": "自我评价.关键词", "judge": "关键词", "weight": 0.15, "note": "学习/问题解决" }
+      ],
+      "deferred_checks": [
+        { "dim": "项目真实性", "stage": "面试STAR", "why": "需行为证据" },
+        { "dim": "技术深度", "stage": "面试", "why": "冰山以下" }
+      ]
+    }
+  ]
+}
