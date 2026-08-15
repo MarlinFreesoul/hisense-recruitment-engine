@@ -20,7 +20,7 @@ import pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 from scoring import (score_stability, score_soft_qualities, score_experience,
-                     score_skills, score_major_match, EDU_LEVELS, UNKNOWN)
+                     score_skills, score_major_match, EDU_LEVELS, UNKNOWN, SATISFIED, UNSATISFIED)
 from jd_generator import load_family
 from risk_filter import risk_report
 from interview import generate_questions, format_questions_text
@@ -175,6 +175,14 @@ def _missing(fields: dict) -> list[str]:
 
 
 # ============== 评分 + 风险 ==============
+RISK_VERIFY_QUESTIONS = {
+    "证书核验": "请核验证书原件与有效期",
+    "期望错位": "请电话确认求职意向与留存意愿",
+    "频繁跳槽": "请确认离职原因与稳定承诺",
+    "稳定性": "请确认离职原因与稳定承诺",
+}
+
+
 def score_feishu_resume(resume: dict, family: dict) -> dict:
     degree = resume["education"]["degree"]
     need = 0
@@ -184,7 +192,10 @@ def score_feishu_resume(resume: dict, family: dict) -> dict:
             break
     edu_pass = EDU_LEVELS.get(degree, 0) >= need
 
-    soft_detail = []
+    dimension_scores = []
+    recommend_reasons = []
+    pending_reasons = []
+    reject_reasons = []
     weighted_sum = 0.0
     applied_weight = 0.0
     for dim in family.get("soft_scores", []):
@@ -193,26 +204,52 @@ def score_feishu_resume(resume: dict, family: dict) -> dict:
               "经验": score_experience, "技能": score_skills,
               "专业对口": score_major_match}.get(key)
         if fn is None:
-            soft_detail.append({"dim": key, "weight": w, "state": "未配置", "raw": None})
+            dimension_scores.append({"dimension_name": key, "weight": w, "state": "未配置",
+                                     "score": 0, "evidence": "", "deduction_reason": ""})
             continue
-        state, raw = fn(resume, family)
+        state, raw, evidence = fn(resume, family)
         if state == UNKNOWN:
-            # 未知维度：剔除分母，不惩罚、不计分
-            soft_detail.append({"dim": key, "weight": w, "state": "未知", "raw": raw})
+            dimension_scores.append({"dimension_name": key, "weight": w, "state": "未知",
+                                     "score": 0, "evidence": evidence, "deduction_reason": ""})
+            pending_reasons.append(f"{key}：{evidence}")
             continue
         weighted_sum += raw * w
         applied_weight += w
-        soft_detail.append({"dim": key, "weight": w, "state": state, "raw": raw,
-                            "weighted": round(raw * w, 2)})
+        deduction = "" if state == SATISFIED else f"{key}未达标"
+        dimension_scores.append({"dimension_name": key, "weight": w, "state": state,
+                                 "score": raw, "evidence": evidence, "deduction_reason": deduction})
+        if state == SATISFIED:
+            recommend_reasons.append(evidence)
+        else:
+            reject_reasons.append(f"{key}：{evidence}")
 
     total_weight = sum(d.get("weight", 0) for d in family.get("soft_scores", []))
     score_100 = round(weighted_sum / applied_weight * 10, 1) if applied_weight > 0 else None
     coverage = round(applied_weight / total_weight, 2) if total_weight > 0 else 0.0
 
     risk = risk_report(resume)
+    risk_warnings = [
+        {"risk_type": r["type"], "risk_level": r["level"], "evidence": r["detail"],
+         "suggested_verify_question": RISK_VERIFY_QUESTIONS.get(r["type"], "请人工核验")}
+        for r in risk["risks"] if r["level"] != "低"
+    ]
+
+    status = "不推荐" if not edu_pass else ("推荐" if score_100 is not None and score_100 >= 75 else "待确认")
+    decision_summary = f"{status}：" + ("、".join(recommend_reasons[:2]) if recommend_reasons else ("、" .join(reject_reasons[:1]) if reject_reasons else "信息不足"))
+
     return {
+        # 陈老师标杆结构
+        "match_score": score_100,
+        "screening_status": status,
+        "decision_summary": decision_summary,
+        "recommend_reasons": recommend_reasons,
+        "pending_reasons": pending_reasons,
+        "reject_reasons": reject_reasons,
+        "dimension_scores": dimension_scores,
+        "risk_warnings": risk_warnings,
+        # 兼容旧字段
         "硬性通过": edu_pass,
-        "软条件明细": soft_detail,
+        "软条件明细": dimension_scores,
         "匹配度": score_100,
         "等级": _grade(score_100, edu_pass),
         "信息覆盖度": coverage,

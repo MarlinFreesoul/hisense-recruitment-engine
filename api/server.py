@@ -121,3 +121,10 @@ def interview_submit(req: InterviewSubmit):
     }
     result = FeishuClient().create_records(INTERVIEW_COLLECT_TABLE_ID, [fields])
     return {"success": result.get("code") == 0, "result": result}
+
+
+@app.get("/demo_data")
+def demo_data():
+    """陈老师 demo 聚合数据：飞书真实 JD + 简历 + 评分 → demo 格式。"""
+    from src.demo_data import build_demo_data
+    return build_demo_data()

@@ -102,60 +102,86 @@ def _check_one_hard(resume: dict, f: dict) -> tuple[bool, str]:
 # ---------- 软条件（确定性评分函数，0-10 分/维度） ----------
 
 def score_stability(resume: dict, family: dict = None):
-    """稳定性：最近一段工作持续时间（跳槽频率的代理）。无经历→未知。"""
+    """稳定性：最近一段工作持续时间（跳槽频率的代理）。无经历→未知。返回 (state, raw, evidence)。"""
     work = resume.get("work_experience", []) or []
     if not work:
-        return UNKNOWN, 0
+        return UNKNOWN, 0, "无工作经历记录"
     y = _latest_years(work)
-    if y >= 2: return SATISFIED, 10
-    if y >= 1: return SATISFIED, 7
-    if y >= 0.5: return UNSATISFIED, 4
-    return UNSATISFIED, 2
+    if y >= 5: return SATISFIED, 10, f"最近一段工作 {y} 年，非常稳定"
+    if y >= 3: return SATISFIED, 9, f"最近一段工作 {y} 年，稳定"
+    if y >= 2: return SATISFIED, 8, f"最近一段工作 {y} 年"
+    if y >= 1.5: return SATISFIED, 7, f"最近一段工作 {y} 年"
+    if y >= 1: return SATISFIED, 6, f"最近一段工作 {y} 年"
+    if y >= 0.5: return UNSATISFIED, 4, f"最近一段工作 {y} 年，偏短"
+    return UNSATISFIED, 2, f"最近一段工作 {y} 年，稳定性存疑"
 
 
 def score_soft_qualities(resume: dict, family: dict = None):
-    """软实力：自我评价关键词命中数 ×2，上限10。无自我评价→未知。"""
+    """软实力：自我评价关键词命中数 ×2，上限10。无自我评价→未知。返回 (state, raw, evidence)。"""
     text = (resume.get("self_evaluation", "") or "").strip()
     if not text:
-        return UNKNOWN, 0
+        return UNKNOWN, 0, "无自我评价"
     kw = ["吃苦", "倒班", "协作", "团队", "纪律", "抗压", "认真", "责任", "踏实"]
-    score = min(10, sum(1 for k in kw if k in text) * 2)
-    return (SATISFIED if score > 0 else UNSATISFIED), score
+    hits = [k for k in kw if k in text]
+    score = min(10, len(hits) * 2)
+    ev = f"命中关键词：{'、'.join(hits[:4])}" if hits else "自我评价无匹配关键词"
+    return (SATISFIED if score > 0 else UNSATISFIED), score, ev
 
 
 def score_experience(resume: dict, family: dict = None):
-    """经验：总年限 + 职位对口（家电/制造）加分。无经历→未知。"""
+    """经验：总年限 + 职位对口（家电/制造）加分。无经历→未知。返回 (state, raw, evidence)。"""
     work = resume.get("work_experience", []) or []
     if not work:
-        return UNKNOWN, 0
+        return UNKNOWN, 0, "无工作经历"
     total = _total_years(work)
-    if total >= 3: s = 10
-    elif total >= 1: s = 7
-    else: s = 4
-    # 对口加分：职位或公司名命中制造/家电/冰箱
-    for w in work:
-        blob = (w.get("position", "") or "") + (w.get("company", "") or "")
-        if any(k in blob for k in ["装配", "制造", "家电", "冰箱", "生产", "工艺", "质量"]):
-            s += 1
-            break
-    return (SATISFIED if s >= 7 else UNSATISFIED), min(10, s)
+    matched = any(
+        any(k in ((w.get("position", "") or "") + (w.get("company", "") or ""))
+            for k in ["装配", "制造", "家电", "冰箱", "生产", "工艺", "质量"])
+        for w in work
+    )
+    # 细化：年限 + 对口综合分档，避免随便满分
+    if matched:
+        if total >= 5: s = 10
+        elif total >= 3: s = 9
+        elif total >= 1: s = 7
+        else: s = 4
+    else:
+        if total >= 5: s = 9
+        elif total >= 3: s = 8
+        elif total >= 1: s = 6
+        else: s = 3
+    ev = f"{total:.1f}年经验" + ("，行业对口" if matched else "")
+    return (SATISFIED if s >= 7 else UNSATISFIED), min(10, s), ev
 
 
 def score_skills(resume: dict, family: dict = None):
-    """技能：required 命中 + preferred 命中 + 证书加分，上限10。无技能且无证书→未知。"""
+    """技能：required 命中 + preferred 命中 + 证书加分，上限10。无技能且无证书→未知。返回 (state, raw, evidence)。"""
     skills = {s.strip() for s in (resume.get("skills", []) or [])}
     certs = resume.get("certificates", []) or []
     if not skills and not certs:
-        return UNKNOWN, 0
+        return UNKNOWN, 0, "无技能与证书"
     sm = (family or {}).get("skill_model", {})
     required = sm.get("required", [])
     preferred = sm.get("preferred", [])
-    hit_req = sum(1 for r in required if r in skills)
-    hit_pref = sum(1 for p in preferred if p in skills)
-    s = round(hit_req / len(required) * 6) if required else 3
-    s += hit_pref
-    s += len(certs)
-    return (SATISFIED if s > 3 else UNSATISFIED), min(10, s)
+    hit_req = [r for r in required if r in skills]
+    hit_pref = [p for p in preferred if p in skills]
+    # 细化：required 全命中给基数 8 分（按命中率），preferred 命中 +1，证书 +1
+    req_ratio = len(hit_req) / len(required) if required else 1.0
+    s = round(req_ratio * 8)
+    s += 1 if hit_pref else 0
+    s += 1 if certs else 0
+    # 证据拆分：required 命中 / 加分技能 / 证书 分开写，避免病句
+    parts = []
+    if hit_req:
+        parts.append(f"命中技能：{'、'.join(hit_req)}")
+    elif required:
+        parts.append("未命中岗位必需技能")
+    if hit_pref:
+        parts.append(f"加分技能：{'、'.join(hit_pref)}")
+    if certs:
+        parts.append(f"证书：{'、'.join(c['name'] for c in certs)}")
+    ev = "；".join(parts) if parts else "技能不匹配"
+    return (SATISFIED if s >= 6 else UNSATISFIED), min(10, s), ev
 
 
 def load_major_mapping() -> dict:
@@ -166,16 +192,18 @@ def load_major_mapping() -> dict:
 
 def score_major_match(resume: dict, family: dict = None):
     """专业对口：简历专业 → 专业大类 → 岗位族映射。
-    无专业→未知（不再计 0 分）；对口 10、不对口 3、无法判断 5。"""
+    无专业→未知（不再计 0 分）；对口 10、不对口 3、无法判断 5。返回 (state, raw, evidence)。"""
     major = (resume.get("education", {}).get("major", "") or "").strip()
     if not major:
-        return UNKNOWN, 0
+        return UNKNOWN, 0, "简历未填写专业"
     family_name = (family or {}).get("name", "")
     for group in load_major_mapping()["major_groups"]:
         if any(k in major for k in group["keywords"]):
             hit = family_name in group["job_families"]
-            return (SATISFIED, 10) if hit else (UNSATISFIED, 3)
-    return UNKNOWN, 5  # 专业不在映射表，无法判断
+            if hit:
+                return SATISFIED, 10, f"专业「{major}」对口"
+            return UNSATISFIED, 3, f"专业「{major}」与岗位不对口"
+    return UNKNOWN, 5, f"专业「{major}」无法判断对口"
 
 
 # ---------- 汇总 ----------
