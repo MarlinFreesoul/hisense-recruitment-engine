@@ -14,7 +14,6 @@
       "salary_band": "5-7K/月 或 180-210元/天",
       "skill_model": { "required": ["装配", "包装", "生产线操作"], "preferred": ["钳工", "电工", "质检"] },
       "hard_filters": [
-        { "dim": "年龄", "evidence": "基本信息.age", "judge": "规则", "rule": "18-45岁" },
         { "dim": "学历", "evidence": "教育.degree", "judge": "规则", "rule": "学历不限" },
         { "dim": "到岗意愿", "evidence": "期望.到岗时间", "judge": "规则", "rule": "越快越好（1个月内优先）" },
         { "dim": "倒班接受", "evidence": "自我评价.关键词", "judge": "关键词", "rule": "含「接受倒班/夜班/两班倒」" }
@@ -27,6 +26,7 @@
         { "dim": "现场适配", "evidence": "技能列表+自我评价", "judge": "关键词", "weight": 0.15, "note": "5S/安全/质量意识/班组协作" }
       ],
       "deferred_checks": [
+        { "dim": "年龄适配", "stage": "人工复核", "why": "合规红线：年龄不作自动淘汰依据" },
         { "dim": "动机/价值观", "stage": "面试", "why": "简历无直接字段" },
         { "dim": "技能真实性", "stage": "面试STAR+背调", "why": "简历无直接字段" },
         { "dim": "健康/犯罪记录", "stage": "体检/背调", "why": "简历无直接字段" }

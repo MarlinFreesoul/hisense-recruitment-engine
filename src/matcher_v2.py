@@ -67,7 +67,7 @@ class FeishuClient:
             r = requests.get(f"https://open.feishu.cn/open-apis/bitable/v1/apps/{BASE_APP_TOKEN}/tables/{table_id}/records",
                              headers=self._hdr(), params=params, timeout=30).json()
             if r.get("code") == 0:
-                records += r["data"]["items"]
+                records += r["data"]["items"] or []
                 if r["data"].get("has_more"):
                     pt = r["data"]["page_token"]
                 else:
@@ -105,6 +105,42 @@ FAMILY_KEYWORDS = {
     "procurement-logistics": ["采购", "物流", "仓储", "计划", "供应链", "资材"],
     "rnd-engineering": ["嵌入式", "研发", "软件", "算法", "开发", "数据库"],
 }
+
+
+# ============== 淘汰信号分级（对齐陈老师标准） ==============
+# 一票否决信号：求职意向错位（留存风险，直接不推荐，分再高也救不回）
+REJECT_SIGNAL_KEYWORDS = ["意向不符", "意向偏离", "意向偏低", "意向偏高"]
+
+# 重淘汰信号：明显不匹配 / 硬伤 / 诚信风险 → 每个扣 15 分（可累计）
+# 轻信号（到岗2周/薪资略高/通勤/需确认/单项能力缺失）不在此列，落入待确认交给电话确认
+HEAVY_SIGNAL_KEYWORDS = [
+    # 倒班硬伤（一线生产核心硬条件）
+    "不接受倒班", "不接受站班", "不接受加班",
+    # 稳定性硬伤
+    "频繁跳槽", "断层",
+    # 诚信风险（数据造假嫌疑）
+    "数据夸张", "数据不合理",
+    # 薪资严重错位（远超/超岗位/超上限，非「略高」）
+    # 注意：飞书写成「薪资期望超岗位上限」，中间隔着「期望」，故匹配「超」字部分而非「薪资」前缀
+    "远超", "超岗位", "超上限",
+    # 无制造业经验（只有电商/快递仓）
+    "只有电商仓", "只有快递仓", "只有电商", "只有快递", "缺少制造业", "无制造业",
+    # 经验严重缺失
+    "应届无项目", "只有实习",
+    # 简历质量
+    "信息过于简单",
+    # 到岗明确不满足（太晚）
+    "到岗时间不满足", "到岗不满足",
+    # 明显不对口
+    "偏IT",
+]
+
+
+def classify_risk_signals(risk_signals: list[str]) -> tuple[bool, int]:
+    """把风险信号分成 (是否一票否决, 重信号累计扣分)。轻信号不计入。"""
+    reject = any(any(k in sig for k in REJECT_SIGNAL_KEYWORDS) for sig in risk_signals)
+    penalty = 15 * sum(1 for sig in risk_signals if any(k in sig for k in HEAVY_SIGNAL_KEYWORDS))
+    return reject, penalty
 
 
 def match_job_family(job_name: str):
@@ -179,7 +215,13 @@ def _missing(fields: dict) -> list[str]:
 
 # ============== 评分 + 风险 ==============
 def _screening_status(score, edu_pass):
-    """对齐陈老师推荐等级：90-100立即约面 / 80-89电话确认 / 75-79备选 / 45-74待确认 / 0-44不推荐。"""
+    """对齐陈老师推荐等级：90-100立即约面 / 80-89电话确认 / 75-79备选 / 45-74待确认 / 0-44不推荐。
+
+    三分类映射（对齐 10% 推荐 / 30% 待确认 / 60% 不推荐）：
+      推荐 = 90-100 + 80-89（明确推荐，约面）
+      待确认 = 75-79（备选）+ 45-74（待确认）
+      不推荐 = 0-44
+    """
     if not edu_pass:
         return "不推荐", "暂不推进"
     if score is None:
@@ -189,7 +231,7 @@ def _screening_status(score, edu_pass):
     if score >= 80:
         return "推荐", "电话确认后约面"
     if score >= 75:
-        return "推荐", "加入备选"
+        return "待确认", "加入备选"
     if score >= 45:
         return "待确认", "电话确认"
     return "不推荐", "暂不推进"
@@ -204,9 +246,11 @@ RISK_VERIFY_QUESTIONS = {
 def score_feishu_resume(resume: dict, family: dict) -> dict:
     degree = resume["education"]["degree"]
     need = 0
+    edu_rule = "不限"
     for f in family.get("hard_filters", []):
         if f["dim"] == "学历":
-            need = EDU_LEVELS.get(f.get("rule", "不限"), 0)
+            edu_rule = f.get("rule", "不限")
+            need = EDU_LEVELS.get(edu_rule, 0)
             break
     edu_pass = EDU_LEVELS.get(degree, 0) >= need
 
@@ -251,23 +295,12 @@ def score_feishu_resume(resume: dict, family: dict) -> dict:
     total_weight = sum(d.get("weight", 0) for d in family.get("soft_scores", []))
     score_100 = round(weighted_sum / applied_weight * 10, 1) if applied_weight > 0 else None
 
-    # 淘汰信号扣分（对齐陈老师 10/30/60 分层）
-    risk_signals = resume.get("risk_signals", [])
-    penalty = 0
-    reject = False
-    for sig in risk_signals:
-        if any(k in sig for k in ["意向不符", "意向偏离"]):
-            reject = True
-        elif any(k in sig for k in ["薪资"]):
-            penalty += 15
-        elif any(k in sig for k in ["到岗", "急招"]):
-            penalty += 15
-        elif any(k in sig for k in ["无制造", "无精益", "经验不", "不对口"]):
-            penalty += 15
+    # 淘汰信号分级：意向错位→一票否决；重信号→扣15分；轻信号不罚（落入待确认）
+    reject, penalty = classify_risk_signals(resume.get("risk_signals", []))
     if score_100 is not None:
         score_100 = max(0.0, score_100 - penalty)
         if reject:
-            score_100 = min(score_100, 44.0)  # 意向不符直接不推荐
+            score_100 = min(score_100, 44.0)  # 意向错位直接不推荐
     coverage = round(applied_weight / total_weight, 2) if total_weight > 0 else 0.0
 
     risk = risk_report(resume)
@@ -278,7 +311,23 @@ def score_feishu_resume(resume: dict, family: dict) -> dict:
     ]
 
     status, next_action = _screening_status(score_100, edu_pass)
-    decision_summary = f"{status}：" + ("、".join(recommend_reasons[:2]) if recommend_reasons else ("、" .join(reject_reasons[:1]) if reject_reasons else "信息不足"))
+    # 学历硬条件不通过 → 把原因写进淘汰原因，避免「不推荐却只显示推荐理由」的矛盾
+    if not edu_pass:
+        reject_reasons.insert(0, f"学历{degree}不满足{edu_rule}要求")
+    # 求职意向错位（一票否决）→ 写进淘汰原因
+    if reject:
+        reject_reasons.insert(0, "求职意向与岗位不符")
+    # 不推荐但无具体淘汰原因（维度全未知）→ 补一个明确原因
+    if status == "不推荐" and not reject_reasons:
+        reject_reasons.append("简历信息严重缺失，无法评估")
+    # 决策摘要按状态取对应原因：推荐→推荐原因，待确认→待确认原因，不推荐→淘汰原因
+    if status == "推荐":
+        summary_reasons = recommend_reasons
+    elif status == "待确认":
+        summary_reasons = pending_reasons
+    else:
+        summary_reasons = reject_reasons
+    decision_summary = f"{status}：" + ("、".join(summary_reasons[:2]) if summary_reasons else "信息不足")
 
     return {
         # 陈老师标杆结构
@@ -304,11 +353,13 @@ def score_feishu_resume(resume: dict, family: dict) -> dict:
 
 
 def _grade(score, hard_pass: bool) -> str:
+    """匹配度分级（对照 PRD 学术标准）：81-100 完全匹配 A级 / 61-80 基本匹配 B级 /
+    21-60 相当匹配或不匹配 C级 / <21 非常不匹配 不推荐。"""
     if not hard_pass: return "不推荐"
     if score is None: return "信息不足"
-    if score >= 90: return "A级"
-    if score >= 75: return "B级"
-    if score >= 60: return "C级"
+    if score >= 81: return "A级"
+    if score >= 61: return "B级"
+    if score >= 21: return "C级"
     return "不推荐"
 
 
