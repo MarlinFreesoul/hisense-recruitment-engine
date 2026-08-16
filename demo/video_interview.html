@@ -289,7 +289,7 @@ $("#startBtn").addEventListener("click", async () => {
     candUid = room.candidate.user_id; hrUid = room.interviewer.user_id; roomId = room.room_id ?? null;
     eligible = true; renderElig();
 
-    const asr = await fetch(`${API_BASE}/video/asr?voice_id=${encodeURIComponent(role + "_" + room.room_id)}`).then((x) => x.json());
+    const asr = await fetch(`${API_BASE}/video/asr?voice_id=${encodeURIComponent(role + "_" + (room.room_id ?? 0))}`).then((x) => x.json());
     if (!asr.success) { setError("ASR 初始化失败：" + (asr.error || "未知")); return; }
 
     await enterRoom(room);
@@ -303,7 +303,7 @@ $("#startBtn").addEventListener("click", async () => {
         else setStatus(`① 房间就绪。⚠ 云端录制未启动：${rec.error || ""}（结束将用本地转写兜底回写飞书）`);
       } catch (e) { setStatus(`① 房间就绪。⚠ 云端录制调用异常（结束将用本地转写兜底回写飞书）`); }
       assistTimer = setInterval(callAssist, 8000);
-      const u = new URL(location.href); u.searchParams.set("candidate", candidateId.trim()); u.searchParams.set("role", "candidate");
+      const u = new URL(location.pathname, location.origin); u.searchParams.set("candidate", candidateId.trim()); u.searchParams.set("role", "candidate");
       $("#inviteBox").innerHTML = `<input readonly value="${u}" style="flex:1;min-width:260px;border:1px solid var(--line);border-radius:8px;padding:8px;font-size:12px;"> <button class="btn" id="copyLink" style="border:1px solid var(--line);">复制邀请链接</button>`;
       $("#copyLink").addEventListener("click", () => { navigator.clipboard?.writeText(u.toString()); setStatus("邀请链接已复制，发给候选人即可入会。"); });
     } else {
