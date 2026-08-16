@@ -44,6 +44,7 @@ def generate_jd(family_key: str, params: dict) -> dict:
         "experience_threshold": params.get("experience", fam.get("experience_threshold", {"min_years": 0})),
         "soft_qualities": params.get("soft_qualities", fam.get("soft_qualities", [])),
         "responsibilities": params.get("responsibilities", []),
+        "domain_sub_disciplines": fam.get("sub_disciplines", []),  # 制造业垂直领域词库（冰箱研发细分）
         "_editable": True,  # PRD：HR/用人部门可修改调整
         "_template": family_key,
     }

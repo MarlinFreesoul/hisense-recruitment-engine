@@ -25,7 +25,7 @@ def run_screening(resume_json: dict, family_key: str, jd_params: dict | None = N
     family = load_family(family_key)
     jd = generate_jd(family_key, jd_params or {})
     match = compute_match(resume_json, family)
-    risk = risk_report(resume_json)
+    risk = risk_report(resume_json, family)
     return {
         "resume": resume_json,
         "jd": jd,

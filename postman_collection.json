@@ -1,0 +1,116 @@
+{
+  "info": {
+    "name": "海信 AI 招聘智能体 · 黑客松 MVP 接口集合",
+    "description": "覆盖 require.txt 四大模块的可演示端点。后端默认 http://localhost:8000。\n演示顺序建议：/demo/seed → /talent-pool → /screen/upload（真实简历投递即筛选）→ /review/department-push → /review/department-decision → /decision/offer-fallback。",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" }
+  ],
+  "item": [
+    {
+      "name": "健康检查",
+      "request": { "method": "GET", "url": "{{baseUrl}}/health" }
+    },
+    {
+      "name": "模块1 · 载入演示数据（6份特色候选人入内存池）",
+      "request": { "method": "POST", "url": "{{baseUrl}}/demo/seed" }
+    },
+    {
+      "name": "模块1 · 真实简历上传即打分 + 自动入池",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/screen/upload",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "file", "type": "file", "src": "" },
+            { "key": "job_name", "value": "装配包装工", "type": "text" },
+            { "key": "job_family", "value": "firstline", "type": "text" },
+            { "key": "write_feishu", "value": "false", "type": "text" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "模块1 · 文本粘贴打分（离线正则兜底）",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/screen",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"text\":\"姓名：刘芳。大专，电子专业，3年装配经验，有电工证，接受倒班，一个月内到岗。\",\"job_name\":\"装配包装工\",\"job_family\":\"firstline\",\"write_feishu\":false}"
+        }
+      }
+    },
+    {
+      "name": "模块1 · 自动生成可编辑 JD",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/jd/generate",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"job_family\":\"firstline\",\"params\":{\"position\":\"装配包装工\",\"location\":\"佛山顺德\",\"salary\":\"5000-6000元/月\",\"extra_hard\":[\"高处作业证\"],\"extra_skills\":[\"PLC\"]}}" }
+      }
+    },
+    {
+      "name": "模块2 · 风险识别（随 /screen 一并返回 risk 字段）",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/screen",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"text\":\"姓名：陈浩。本科，机械制造，5年设备维修，电工证、钳工证，接受倒班。2020-01~2020-06 某公司；2020-09~2023-06 某厂（可见断层）。\",\"job_name\":\"设备维修工程师\",\"job_family\":\"process-equipment\",\"write_feishu\":false}" }
+      }
+    },
+    {
+      "name": "模块3 · 面试问题（含测评报告个性化追问）",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/interview/questions?candidate=张三&assessment=逻辑思维72分(待提升)；抗压80分"
+      }
+    },
+    {
+      "name": "模块4 · 人才储备池对比表",
+      "request": { "method": "GET", "url": "{{baseUrl}}/talent-pool?job_family=firstline" }
+    },
+    {
+      "name": "模块1终点 · HR推送用人部门复核",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/review/department-push",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"candidate_id\":\"C-XXXX\",\"name\":\"张三\",\"job_family\":\"firstline\"}" }
+      }
+    },
+    {
+      "name": "模块1终点 · 用人部门通过/不通过+备注",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/review/department-decision",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"candidate_id\":\"C-XXXX\",\"name\":\"张三\",\"job_family\":\"firstline\",\"decision\":\"通过\",\"note\":\"经验匹配，建议推进\"}" }
+      }
+    },
+    {
+      "name": "模块4 · Offer放弃秒级递补",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/decision/offer-fallback",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"job_family\":\"firstline\",\"rejected_id\":\"C-XXXX\"}" }
+      }
+    },
+    {
+      "name": "模块3 · 视频面试结构化评价（需录音双人转写JSON）",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/video/report",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"candidate\":\"张三\",\"job\":\"装配包装工\",\"family_key\":\"firstline\",\"speaker_transcript\":[{\"speaker\":\"HR\",\"text\":\"能接受两班倒吗？\"},{\"speaker\":\"候选人\",\"text\":\"可以，之前工厂也倒过班。\"}]}"
+        }
+      }
+    }
+  ]
+}

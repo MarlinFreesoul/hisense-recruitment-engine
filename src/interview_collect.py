@@ -13,8 +13,13 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from jd_generator import load_family
 
 
-def generate_core_questions(family_key: str, resume: dict, risk_points: list) -> list:
-    """生成核心采集问题。不同岗位族 → 不同硬条件 → 问题自动不同；证书名从简历参数化。"""
+def generate_core_questions(family_key: str, resume: dict, risk_points: list,
+                            assessment_report: str = None) -> list:
+    """生成核心采集问题。不同岗位族 → 不同硬条件 → 问题自动不同；证书名从简历参数化。
+
+    assessment_report：HR/系统录入的候选人测评报告文本。若提供，则针对其结论（短板/待提升项）
+    追加个性化追问——对齐 PRD 模块 3「针对简历短板、测评报告定制个性化面试问题」。
+    """
     questions = []
     family = load_family(family_key)
     hard_dims = [f["dim"] for f in family.get("hard_filters", [])]
@@ -49,6 +54,17 @@ def generate_core_questions(family_key: str, resume: dict, risk_points: list) ->
                       "类型": "单选", "选项": ["强", "中", "弱"]})
     questions.append({"id": "teamwork", "维度": "团队协作", "问题": "你习惯团队协作还是独立完成任务？",
                       "类型": "单选", "选项": ["团队协作", "独立", "都可以"]})
+
+    # 测评报告驱动的个性化追问（PRD 模块 3 硬要求）
+    if assessment_report and assessment_report.strip():
+        snippet = assessment_report.strip()
+        if len(snippet) > 60:
+            snippet = snippet[:60] + "…"
+        questions.append({
+            "id": "assessment_followup", "维度": "测评报告追问",
+            "问题": f"你的测评报告显示「{snippet}」。请结合具体事例，说明你会如何改进或补足这一短板？",
+            "类型": "文本",
+        })
 
     return questions
 

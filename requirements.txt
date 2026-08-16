@@ -4,3 +4,7 @@ requests>=2.31       # 飞书开放平台 API + DeepSeek LLM 调用
 fastapi>=0.110       # API 服务（api/server.py）
 uvicorn>=0.27        # ASGI 服务器
 pydantic>=2.0        # 数据校验
+
+# 视频面试辅助（独立 TRTC + 独立 ASR + COS 录制）
+websockets>=12.0     # 前端/服务端 WebSocket 客户端（ASR 流式识别，按需）
+cos-python-sdk-v5>=1.9  # 腾讯云 COS 录制落盘（src/cos_upload.py）

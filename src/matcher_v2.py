@@ -67,7 +67,7 @@ class FeishuClient:
             r = requests.get(f"https://open.feishu.cn/open-apis/bitable/v1/apps/{BASE_APP_TOKEN}/tables/{table_id}/records",
                              headers=self._hdr(), params=params, timeout=30).json()
             if r.get("code") == 0:
-                records += r["data"]["items"] or []
+                records += r["data"]["items"]
                 if r["data"].get("has_more"):
                     pt = r["data"]["page_token"]
                 else:
@@ -82,6 +82,43 @@ class FeishuClient:
                           headers=self._hdr(),
                           json={"records": [{"fields": f} for f in fields_list]}, timeout=30).json()
         return r
+
+    def get_record(self, table_id: str, record_id: str) -> dict | None:
+        """读取单条记录（按 record_id 精准定位，避免全表扫描）。无则返回 None。
+
+        飞书单条记录接口返回结构为 {"data": {"record": {fields...}}}，故取 data.record。
+        """
+        import requests
+        r = requests.get(
+            f"https://open.feishu.cn/open-apis/bitable/v1/apps/{BASE_APP_TOKEN}/tables/{table_id}/records/{record_id}",
+            headers=self._hdr(), timeout=30).json()
+        if r.get("code") == 0 and r.get("data"):
+            return r["data"].get("record") or r["data"]
+        return None
+
+    def update_record(self, table_id: str, record_id: str, fields: dict) -> dict:
+        """更新单条记录的指定字段（保留 record_id 不变，实现「修改资料」而非新建）。"""
+        import requests
+        r = requests.put(
+            f"https://open.feishu.cn/open-apis/bitable/v1/apps/{BASE_APP_TOKEN}/tables/{table_id}/records/{record_id}",
+            headers=self._hdr(), json={"fields": fields}, timeout=30).json()
+        return r
+
+    def delete_records(self, table_id: str, record_ids: list[str]) -> int:
+        """按 record_id 精准删除指定记录（安全清理用，绝不整表清空）。
+
+        与 clear_table 的区别：本方法只删传入的 id 列表，不会对表内其它数据造成任何影响。
+        record_ids 为空直接返回 0，避免误删。
+        """
+        import requests
+        if not record_ids:
+            return 0
+        r = requests.post(
+            f"https://open.feishu.cn/open-apis/bitable/v1/apps/{BASE_APP_TOKEN}/tables/{table_id}/records/batch_delete",
+            headers=self._hdr(), json={"records": list(record_ids)}, timeout=30).json()
+        if r.get("code") != 0:
+            raise Exception(f"精准删除失败: {r}")
+        return len(record_ids)
 
     def clear_table(self, table_id: str) -> int:
         """清空一张表的所有记录，返回删除条数。"""
@@ -103,8 +140,16 @@ FAMILY_KEYWORDS = {
     "process-equipment": ["工艺", "设备", "IE", "模具", "维修", "精益"],
     "quality": ["质量", "质检", "品保", "检验", "测试", "品质", "品控", "安全", "EHS", "消防", "环保"],
     "procurement-logistics": ["采购", "物流", "仓储", "计划", "供应链", "资材"],
-    "rnd-engineering": ["嵌入式", "研发", "软件", "算法", "开发", "数据库"],
+    "rnd-engineering": ["制冷", "压缩机", "冷凝器", "蒸发器", "风道", "流体", "结构设计", "结构工程师", "注塑模", "Moldflow", "模流", "聚氨酯", "环戊烷", "电控", "嵌入式", "研发", "软件", "算法", "开发", "数据库", "NVH", "换热器", "仿真", "CAE", "CAD", "整机", "产品工程师", "系统工程师", "变频"],
 }
+
+
+def match_job_family(job_name: str):
+    """返回岗位族 key，匹配不上返回 None（未识别，不硬归一线岗）。"""
+    for key, kws in FAMILY_KEYWORDS.items():
+        if any(k in job_name for k in kws):
+            return key
+    return None
 
 
 # ============== 淘汰信号分级（对齐陈老师标准） ==============
@@ -112,26 +157,15 @@ FAMILY_KEYWORDS = {
 REJECT_SIGNAL_KEYWORDS = ["意向不符", "意向偏离", "意向偏低", "意向偏高"]
 
 # 重淘汰信号：明显不匹配 / 硬伤 / 诚信风险 → 每个扣 15 分（可累计）
-# 轻信号（到岗2周/薪资略高/通勤/需确认/单项能力缺失）不在此列，落入待确认交给电话确认
 HEAVY_SIGNAL_KEYWORDS = [
-    # 倒班硬伤（一线生产核心硬条件）
     "不接受倒班", "不接受站班", "不接受加班",
-    # 稳定性硬伤
     "频繁跳槽", "断层",
-    # 诚信风险（数据造假嫌疑）
     "数据夸张", "数据不合理",
-    # 薪资严重错位（远超/超岗位/超上限，非「略高」）
-    # 注意：飞书写成「薪资期望超岗位上限」，中间隔着「期望」，故匹配「超」字部分而非「薪资」前缀
     "远超", "超岗位", "超上限",
-    # 无制造业经验（只有电商/快递仓）
     "只有电商仓", "只有快递仓", "只有电商", "只有快递", "缺少制造业", "无制造业",
-    # 经验严重缺失
     "应届无项目", "只有实习",
-    # 简历质量
     "信息过于简单",
-    # 到岗明确不满足（太晚）
     "到岗时间不满足", "到岗不满足",
-    # 明显不对口
     "偏IT",
 ]
 
@@ -141,14 +175,6 @@ def classify_risk_signals(risk_signals: list[str]) -> tuple[bool, int]:
     reject = any(any(k in sig for k in REJECT_SIGNAL_KEYWORDS) for sig in risk_signals)
     penalty = 15 * sum(1 for sig in risk_signals if any(k in sig for k in HEAVY_SIGNAL_KEYWORDS))
     return reject, penalty
-
-
-def match_job_family(job_name: str):
-    """返回岗位族 key，匹配不上返回 None（未识别，不硬归一线岗）。"""
-    for key, kws in FAMILY_KEYWORDS.items():
-        if any(k in job_name for k in kws):
-            return key
-    return None
 
 
 # ============== 飞书权重配置 ==============
@@ -216,13 +242,9 @@ def _missing(fields: dict) -> list[str]:
 # ============== 评分 + 风险 ==============
 def _screening_status(score):
     """对齐陈老师推荐等级：90-100立即约面 / 80-89电话确认 / 75-79备选 / 45-74待确认 / 0-44不推荐。
-
     三分类映射（对齐 10% 推荐 / 30% 待确认 / 60% 不推荐）：
-      推荐 = 90-100 + 80-89（明确推荐，约面）
-      待确认 = 75-79（备选）+ 45-74（待确认）
-      不推荐 = 0-44
-    一票否决（意向不符/不接受倒班）已在上游扣分处理，不在此处用学历硬门槛。
-    """
+      推荐 = 90-100 + 80-89；待确认 = 75-79（备选）+ 45-74；不推荐 = 0-44。
+    一票否决（意向不符）已在上游扣分处理，不在此处用学历硬门槛。"""
     if score is None:
         return "待确认", "电话确认"
     if score >= 90:
@@ -236,9 +258,14 @@ def _screening_status(score):
     return "不推荐", "暂不推进"
 RISK_VERIFY_QUESTIONS = {
     "证书核验": "请核验证书原件与有效期",
+    "证书过期": "过期证书不予采信，请核验最新有效证书",
     "期望错位": "请电话确认求职意向与留存意愿",
     "频繁跳槽": "请确认离职原因与稳定承诺",
+    "短期任职": "请确认离职原因与稳定承诺",
     "稳定性": "请确认离职原因与稳定承诺",
+    "工作经历断层": "请确认空窗期去向，背调核实",
+    "简历造假": "请核验工作经历/学历真实性（社保/合同/背调）",
+    "核心技能真实性待核验": "面试实操或背调核验核心技能真实水平",
 }
 
 
@@ -292,15 +319,15 @@ def score_feishu_resume(resume: dict, family: dict) -> dict:
             score_100 = min(score_100, 44.0)  # 意向错位直接不推荐
     coverage = round(applied_weight / total_weight, 2) if total_weight > 0 else 0.0
 
-    risk = risk_report(resume)
+    risk = risk_report(resume, family)
     risk_warnings = [
         {"risk_type": r["type"], "risk_level": r["level"], "evidence": r["detail"],
-         "suggested_verify_question": RISK_VERIFY_QUESTIONS.get(r["type"], "请人工核验")}
+         "suggested_verify_question": r.get("advice") or RISK_VERIFY_QUESTIONS.get(r["type"], "请人工核验")}
         for r in risk["risks"] if r["level"] != "低"
     ]
 
     status, next_action = _screening_status(score_100)
-    # 求职意向错位（一票否决）→ 写进淘汰原因
+    # 求职意向错位（一票否决）→ 写进淘汰原因，避免「不推荐却只显示推荐理由」的矛盾
     if reject:
         reject_reasons.insert(0, "求职意向与岗位不符")
     # 不推荐但无具体淘汰原因（维度全未知）→ 补一个明确原因

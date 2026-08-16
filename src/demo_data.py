@@ -74,13 +74,13 @@ def build_talent_sources(feishu, jobs):
             "job_title": title,
             "internal": [_talent_internal_item(f) for f in int_matches[:3]],
             "historical": [_talent_historical_item(f) for f in hist_matches[:3]],
-            "external_count": 0,  # 由 build_demo_data 回填外招简历数
+            "external_count": 0,
         })
     return result
 
 
 def build_comparisons(screening_results, jobs):
-    """候选人对比：每岗位 top（推荐）与 backup（待确认），对比维度对齐 V2。"""
+    """候选人对比：每岗位 top（推荐）与 backup（待确认）。"""
     result = []
     for job in jobs:
         jr = [s for s in screening_results if s["target_job_id"] == job["job_id"]]
@@ -105,7 +105,7 @@ def build_comparisons(screening_results, jobs):
 
 
 def build_talent_pool(screening_results, jobs):
-    """入库 + offer 递补：合格集（推荐+待确认）按分数排序，排除 offer 放弃者后给出递补顺序。"""
+    """入库 + offer 递补：合格集（推荐+待确认）按分数排序，排除 offer 放弃者后给递补顺序。"""
     result = []
     for job in jobs:
         jr = [s for s in screening_results if s["target_job_id"] == job["job_id"]]
@@ -123,7 +123,7 @@ def build_talent_pool(screening_results, jobs):
             "job_id": job["job_id"],
             "job_title": job["job_title"],
             "qualified": [_pool_item(s) for s in qualified],
-            "replacement_order": [_pool_item(s) for s in qualified[1:6]],  # 模拟 offer 放弃首名后递补
+            "replacement_order": [_pool_item(s) for s in qualified[1:6]],
         })
     return result
 
@@ -137,7 +137,7 @@ def _job_to_demo(jd_record, index, family):
         "department": fields.get("需求部门", "") or "容声冰箱制造中心",
         "location": fields.get("城市", "") or "佛山顺德",
         "headcount": fields.get("需求人数", 0) or 0,
-        "salary_range": family.get("salary_band", ""),
+        "salary_range": "",
         "urgency": "常规招聘",
         "dimensions": [{"name": d["dim"], "weight": round(d.get("weight", 0) * 100)} for d in family.get("soft_scores", [])],
         "hard_requirements": [f["dim"] for f in family.get("hard_filters", [])],
@@ -290,7 +290,6 @@ def build_demo_data():
     # 模块4：人才评价汇总（人才来源优先级 / 候选人对比 / 入库 + offer 递补）
     talent_sources = build_talent_sources(feishu, jobs)
     for ts in talent_sources:
-        # 回填外招简历数（该岗位应聘的简历数）
         ts["external_count"] = sum(1 for r in resume_records if r["fields"].get("应聘岗位") == ts["job_title"])
     comparisons = build_comparisons(screening_results, jobs)
     talent_pool = build_talent_pool(screening_results, jobs)

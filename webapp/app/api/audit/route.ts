@@ -1,7 +1,9 @@
 // 本地 vite dev 无 cloudflare:workers 模块，@vite-ignore 降级为 offline-demo；Cloudflare 部署时正常解析
+// 用变量承载 specifier，避免 Rolldown 构建期静态解析（仍保留运行时动态 import + 降级）
 let env: any = { DB: undefined };
 try {
-  const mod = await import(/* @vite-ignore */ "cloudflare:workers");
+  const cfSpec = "cloudflare:workers";
+  const mod = await import(/* @vite-ignore */ cfSpec);
   env = mod.env;
 } catch {
   env = { DB: undefined };
