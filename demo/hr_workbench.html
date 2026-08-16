@@ -698,7 +698,7 @@
     .action-icon { width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
     .action-icon.red { background: #fee2e2; color: #dc2626; }
     .action-icon.purple { background: #ede9fe; color: #7c3aed; }
-    .action-icon.blue { background: #dbeafe; color: #1d4ed8; }
+    .action-icon.blue { background: var(--accent-soft); color: var(--accent); }
     .action-item b { display: block; font-size: 14px; }
     .action-item small { color: #6b7280; }
     .action-item em { margin-left: auto; font-style: normal; font-size: 12px; color: #0f766e; }
@@ -714,7 +714,7 @@
     .risk-tag.low { background: #dcfce7; color: #16a34a; }
     .gov-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .gov-raw, .gov-clean { border: 1px solid #f3f4f6; border-radius: 8px; padding: 12px; font-size: 13px; background: #fafbfc; }
-    .gov-clean { background: #f0f7ff; }
+    .gov-clean { background: #e7f5f2; }
     .gov-clean dl { margin: 0; }
     .gov-clean dt { color: #6b7280; font-size: 12px; margin-top: 6px; }
     .gov-clean dd { margin: 0; font-weight: 600; }
@@ -754,11 +754,9 @@
           <div id="dashFeed"></div>
         </div>
         <div class="dash-panel">
-          <h3>AI 提效价值（本周）</h3>
-          <div class="eff-ring">26.4<span style="font-size:13px;color:#6b7280;"> 节省工时</span></div>
-          <div class="feed-item"><span>岗位整理</span><b style="margin-left:auto;">11.2h</b></div>
-          <div class="feed-item"><span>简历初筛</span><b style="margin-left:auto;">9.6h</b></div>
-          <div class="feed-item"><span>沟通与报告</span><b style="margin-left:auto;">5.6h</b></div>
+          <h3>AI 自动化成果</h3>
+          <div class="eff-ring"><span id="effScore">0</span><span style="font-size:13px;color:#6b7280;"> 份简历已自动评分</span></div>
+          <div id="effList"></div>
         </div>
       </div>
     </section>
@@ -875,27 +873,22 @@
       "生成筛选名单"
     ];
 
-    const rawPoolSizeByJob = {
-      "JOB-001": 100,
-      "JOB-004": 100
-    };
-
     const rawRejectReasons = {
-      "JOB-001": [
-        "未明确接受倒班/站班",
-        "到岗时间不满足急招",
-        "期望薪资明显高于岗位",
-        "无制造业或体力岗位经历",
-        "稳定性信息不足",
-        "岗位意向偏离一线生产"
-      ],
-      "JOB-004": [
+      "JOB-001": [  // 采购业务
         "缺少精益物流核心方法",
         "学历或年限不满足要求",
         "项目贡献描述不清",
         "制造业现场经验不足",
         "缺少数据化改善结果",
         "跨部门协同证据不足"
+      ],
+      "JOB-002": [  // 装配工
+        "未明确接受倒班/站班",
+        "到岗时间不满足急招",
+        "期望薪资明显高于岗位",
+        "无制造业或体力岗位经历",
+        "稳定性信息不足",
+        "岗位意向偏离一线生产"
       ]
     };
 
@@ -1246,6 +1239,8 @@
           if (data.score) {
             resultBox.textContent = `✅ ${data.parsed.姓名 || "候选人"} 已入库并评分：匹配度 ${data.score.match_score} 分，${data.score.screening_status}（${data.score.decision_summary}）`;
             await loadData();
+          } else if (data.parsed?.姓名) {
+            resultBox.textContent = `✅ ${data.parsed.姓名} 已入库，但应聘岗位「${jobTitle}」未匹配到岗位族，暂未评分。`;
           } else {
             resultBox.textContent = `解析失败：${JSON.stringify(data).slice(0, 200)}`;
           }
@@ -1571,7 +1566,7 @@
           if (view === "dashboard") { $("#view-dashboard").classList.add("active"); renderDashboard(); }
           else if (view === "governance") { $("#view-governance").classList.add("active"); renderGovernance(); }
           else if (view === "screening") { $("#appRoot").classList.add("active"); }
-          else if (view === "video") { window.open("http://localhost:3001/video_interview.html", "_blank"); }
+          else if (view === "video") { window.open(`http://${location.hostname}:3001/video_interview.html`, "_blank"); }
         });
       });
     }
@@ -1579,26 +1574,35 @@
     function renderDashboard() {
       const jobs = state.data?.jobs || [];
       const results = state.data?.results || [];
-      const highMatch = results.filter((r) => (r.match_score || 0) >= 80).length;
+      const recommend = results.filter((r) => r.recommendation_level === "推荐").length;
+      const pending = results.filter((r) => r.recommendation_level === "待确认").length;
+      const reject = results.filter((r) => r.recommendation_level === "不推荐").length;
+      const pct = (n) => (results.length ? Math.round((n / results.length) * 100) : 0);
       $("#dashMetrics").innerHTML = `
-        <article class="metric-card"><span>有效岗位</span><strong>${jobs.length}<small>条</small></strong><em>↑ 12 本周新增</em></article>
-        <article class="metric-card"><span>待处理候选人</span><strong>${results.length}<small>人</small></strong><em>其中 ${highMatch} 人高匹配</em></article>
-        <article class="metric-card"><span>重复岗位率</span><strong>18<small>%</small></strong><em>↓ 治理后预计 18%</em></article>
-        <article class="metric-card"><span>平均招聘周期</span><strong>6.8<small>天</small></strong><em>↓ 2.4 天 AI 提效</em></article>`;
+        <article class="metric-card"><span>有效岗位</span><strong>${jobs.length}<small>个</small></strong><em>飞书招聘需求表</em></article>
+        <article class="metric-card"><span>待处理候选人</span><strong>${results.length}<small>人</small></strong><em>简历库实时同步</em></article>
+        <article class="metric-card"><span>高匹配候选人</span><strong>${recommend}<small>人</small></strong><em>匹配度 ≥ 80 分</em></article>
+        <article class="metric-card"><span>待确认候选人</span><strong>${pending}<small>人</small></strong><em>需电话核验</em></article>`;
       $("#dashFunnel").innerHTML = `
-        <div class="funnel-row"><span>简历进入</span><b>326</b><small>100%</small></div>
-        <div class="funnel-row" style="width:82%"><span>AI 初筛</span><b>218</b><small>66.9%</small></div>
-        <div class="funnel-row" style="width:61%"><span>人工复核</span><b>128</b><small>39.3%</small></div>
-        <div class="funnel-row" style="width:43%"><span>安排面试</span><b>74</b><small>22.7%</small></div>
-        <div class="funnel-row" style="width:25%"><span>确认录用</span><b>31</b><small>9.5%</small></div>`;
+        <div class="funnel-row"><span>简历进入</span><b>${results.length}</b><small>100%</small></div>
+        <div class="funnel-row" style="width:${pct(recommend) || 100}%"><span>推荐（≥80分）</span><b>${recommend}</b><small>${pct(recommend)}%</small></div>
+        <div class="funnel-row" style="width:${pct(pending) || 100}%"><span>待确认</span><b>${pending}</b><small>${pct(pending)}%</small></div>
+        <div class="funnel-row" style="width:${pct(reject) || 100}%"><span>不推荐</span><b>${reject}</b><small>${pct(reject)}%</small></div>`;
       $("#dashActions").innerHTML = `
-        <div class="action-item" data-goto="governance"><span class="action-icon red">!</span><div><b>23 项岗位风险待复核</b><small>含年龄限制、薪资冲突与标题残缺</small></div><em>高优先级</em></div>
-        <div class="action-item" data-goto="screening"><span class="action-icon purple">◎</span><div><b>15 位高匹配候选人</b><small>建议今日完成首次联系</small></div><em>人才匹配</em></div>
-        <div class="action-item" data-goto="screening"><span class="action-icon blue">◇</span><div><b>8 场 AI 初筛已完成</b><small>摘要与证据等待人工终审</small></div><em>待审核</em></div>`;
+        <div class="action-item" data-goto="screening"><span class="action-icon purple">◎</span><div><b>${recommend} 位高匹配候选人</b><small>匹配度 ≥ 80，建议首次联系</small></div><em>人才匹配</em></div>
+        <div class="action-item" data-goto="screening"><span class="action-icon blue">◇</span><div><b>${pending} 位待确认候选人</b><small>需电话核验到岗/意向/倒班</small></div><em>待审核</em></div>
+        <div class="action-item" data-goto="governance"><span class="action-icon red">!</span><div><b>${jobs.length} 个岗位待治理</b><small>标准化画像 + 合规检查</small></div><em>岗位治理</em></div>`;
+      const top = results.length ? Math.max(...results.map((r) => r.match_score || 0)) : 0;
       $("#dashFeed").innerHTML = `
-        <div class="feed-item"><span>治</span><div><b>岗位治理智能体</b><p>合并 17 条「容桂装配工」重复信息，发现 3 项薪资冲突。</p><small>2 分钟前</small></div></div>
-        <div class="feed-item"><span>配</span><div><b>人才匹配智能体</b><p>完成陈浩与「设备维修工程师」的证据化匹配，得分 92。</p><small>6 分钟前</small></div></div>
-        <div class="feed-item"><span>筛</span><div><b>AI 初筛智能体</b><p>李敏已完成 5 个必要问题，夜班意愿需人工确认。</p><small>11 分钟前</small></div></div>`;
+        <div class="feed-item"><span>筛</span><div><b>AI 初筛智能体</b><p>完成 ${results.length} 份简历评分：推荐 ${recommend}、待确认 ${pending}、不推荐 ${reject}。</p><small>刚刚</small></div></div>
+        <div class="feed-item"><span>治</span><div><b>岗位治理智能体</b><p>标准化 ${jobs.length} 个岗位画像，检查年龄/薪资/标题合规。</p><small>刚刚</small></div></div>
+        <div class="feed-item"><span>配</span><div><b>人才匹配智能体</b><p>本批最高匹配分 ${top} 分，每一分可追溯简历原文证据。</p><small>刚刚</small></div></div>`;
+      const qCount = (state.data?.questions || []).length;
+      $("#effScore").textContent = results.length;
+      $("#effList").innerHTML = `
+        <div class="feed-item"><span>岗位结构化</span><b style="margin-left:auto;">${jobs.length} 个</b></div>
+        <div class="feed-item"><span>简历自动评分</span><b style="margin-left:auto;">${results.length} 份</b></div>
+        <div class="feed-item"><span>面试题自动生成</span><b style="margin-left:auto;">${qCount} 道</b></div>`;
       $$("#dashActions .action-item").forEach((item) => {
         item.addEventListener("click", () => {
           const goto = item.dataset.goto;
@@ -1616,25 +1620,34 @@
       if (!jobs.length) { box.innerHTML = "<p class='hint'>暂无岗位数据</p>"; return; }
       box.innerHTML = jobs.slice(0, 6).map((job) => `
         <div class="gov-card">
-          <div class="gov-head"><span class="risk-tag">需复核</span><h3>${escapeHtml(job.job_title)}</h3></div>
+          <div class="gov-head"><span class="risk-tag low">已标准化</span><h3>${escapeHtml(job.job_title)}</h3></div>
           <div class="gov-compare">
-            <div class="gov-raw"><p>${escapeHtml(job.job_title)} · 佛山 · ${escapeHtml(job.department || "容桂园区")}。职位描述：包吃住 / 立即沟通，具体以现场安排为准。</p><span>来源：BOSS 公开页面截图 OCR</span></div>
+            <div class="gov-raw"><p>${escapeHtml(job.jd_summary || "无原始岗位描述")}</p><span>来源：飞书招聘需求表 · 岗位描述</span></div>
             <div class="gov-clean"><h3>${escapeHtml(job.job_title)}</h3><dl>
               <dt>岗位类别</dt><dd>${escapeHtml(job.job_family)}</dd>
-              <dt>工作地点</dt><dd>${escapeHtml(job.location)} · 容桂园区</dd>
-              <dt>薪资范围</dt><dd>${escapeHtml(job.salary_range || "面议")}</dd>
+              <dt>工作地点</dt><dd>${escapeHtml(job.location)}</dd>
+              <dt>薪资范围</dt><dd>${escapeHtml(job.salary_text || "面议")}</dd>
               <dt>需求人数</dt><dd>${escapeHtml(job.headcount || "未定")}</dd>
+              <dt>硬性条件</dt><dd>${(job.hard_requirements || []).join("、") || "无"}</dd>
             </dl></div>
           </div>
-          <div style="margin-top:10px;font-size:13px;color:#6b7280;"><b>AI 合规与质量检查</b>：发现原文职责不完整、薪资口径需确认；涉及年龄或个人条件时不得作为 AI 自动淘汰依据。</div>
-          <div class="gov-actions"><button class="primary-button" type="button" onclick="generateJdFor('${escapeHtml(job.job_title)}')">✎ 生成 JD</button></div>
+          <div style="margin-top:10px;font-size:13px;color:#6b7280;"><b>AI 标准化结果</b>：岗位名称、类别、地点、薪资、人数、硬条件已结构化，权重按岗位族自动匹配。涉及年龄或个人条件时不得作为 AI 自动淘汰依据。</div>
+          <div class="gov-actions"><button class="primary-button" type="button" data-gen="${escapeHtml(job.job_title)}|${escapeHtml(job.job_family)}">✎ 生成 / 编辑 JD</button></div>
         </div>`).join("");
+      $$("#govList [data-gen]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const [title, family] = btn.dataset.gen.split("|");
+          generateJdFor(title, family);
+        });
+      });
     }
 
-    async function generateJdFor(jobTitle) {
+    const FAMILY_KEY_MAP = { "一线生产/操作": "firstline", "现场管理/生产管培": "production-management", "工艺/IE/设备": "process-equipment", "质量/测试/检验": "quality", "采购/物流/计划": "procurement-logistics", "研发/工程技术": "rnd-engineering" };
+    async function generateJdFor(jobTitle, jobFamily) {
       try {
         const API_BASE = `http://${location.hostname}:8000`;
-        const r = await fetch(`${API_BASE}/jd/generate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ job_family: "procurement-logistics", params: { position: jobTitle } }) });
+        const familyKey = FAMILY_KEY_MAP[jobFamily] || "firstline";
+        const r = await fetch(`${API_BASE}/jd/generate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ job_family: familyKey, params: { position: jobTitle } }) });
         const d = await r.json();
         alert(`JD 已生成：${d.jd?.position || jobTitle}\n岗位族：${d.jd?.job_family}\n必需技能：${(d.jd?.skill_model?.required || []).join("、")}`);
       } catch (e) { alert("JD 生成失败：" + e.message); }
@@ -1721,7 +1734,7 @@
         const realResponse = await fetch(`${API_BASE}/demo_data`, { cache: "no-store" });
         if (realResponse.ok) {
           const realData = await realResponse.json();
-          if (realData.jobs?.length && realData.screening_results?.length) {
+          if (realData.jobs?.length) {
             return normalizeMockPool(realData, emptyFallback);
           }
         }

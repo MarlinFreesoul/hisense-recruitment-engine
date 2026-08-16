@@ -137,7 +137,7 @@ def _job_to_demo(jd_record, index, family):
         "department": fields.get("需求部门", "") or "容声冰箱制造中心",
         "location": fields.get("城市", "") or "佛山顺德",
         "headcount": fields.get("需求人数", 0) or 0,
-        "salary_range": "",
+        "salary_range": family.get("salary_band", ""),
         "urgency": "常规招聘",
         "dimensions": [{"name": d["dim"], "weight": round(d.get("weight", 0) * 100)} for d in family.get("soft_scores", [])],
         "hard_requirements": [f["dim"] for f in family.get("hard_filters", [])],
