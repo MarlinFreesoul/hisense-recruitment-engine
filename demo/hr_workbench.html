@@ -1,0 +1,1614 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>海信 AI 招聘智能体 HR 工作台</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --panel-soft: #f8fafc;
+      --text: #172033;
+      --muted: #64748b;
+      --line: #d8dee8;
+      --accent: #0f766e;
+      --accent-soft: #e7f5f2;
+      --warn: #b45309;
+      --risk: #b91c1c;
+      --ok: #15803d;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    button, select {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+
+    .header-note {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 11px;
+      color: var(--muted);
+      background: var(--panel-soft);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 280px minmax(430px, 1fr) 390px;
+      gap: 14px;
+      padding: 14px;
+      min-height: 0;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel-soft);
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .panel-subtitle {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .scroll {
+      overflow: auto;
+      max-height: calc(100vh - 120px);
+    }
+
+    .job-list {
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .job-button {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 8px;
+      padding: 12px;
+      cursor: pointer;
+      color: var(--text);
+    }
+
+    .job-button.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .job-title {
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .job-meta {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .section {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section:last-child {
+      border-bottom: 0;
+    }
+
+    .section-title {
+      margin: 0 0 10px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .import-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+      padding: 12px;
+    }
+
+    .import-top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .upload-box {
+      border: 1px dashed #9aa8b8;
+      border-radius: 8px;
+      background: #fff;
+      padding: 12px;
+      min-height: 80px;
+    }
+
+    .upload-title {
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .primary-button {
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: #fff;
+      border-radius: 6px;
+      padding: 10px 14px;
+      cursor: pointer;
+      min-width: 150px;
+      white-space: nowrap;
+    }
+
+    .primary-button:disabled {
+      opacity: 0.65;
+      cursor: default;
+    }
+
+    .parse-steps {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .parse-step {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px;
+      background: #fff;
+      min-height: 70px;
+    }
+
+    .parse-step.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .parse-step.done {
+      border-color: #86efac;
+      background: #f0fdf4;
+    }
+
+    .parse-index {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #e2e8f0;
+      color: #475569;
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 7px;
+    }
+
+    .parse-step.active .parse-index {
+      background: var(--accent);
+      color: white;
+    }
+
+    .parse-step.done .parse-index {
+      background: var(--ok);
+      color: white;
+    }
+
+    .parse-name {
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .progress {
+      height: 8px;
+      border-radius: 999px;
+      background: #dbe3ee;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: var(--accent);
+      transition: width 0.25s ease;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .summary-box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+      padding: 12px;
+      min-height: 120px;
+    }
+
+    .summary-box h4 {
+      margin: 0 0 9px;
+      font-size: 13px;
+    }
+
+    .reason-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 12px;
+    }
+
+    .reason-row:last-child {
+      border-bottom: 0;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      background: var(--panel-soft);
+      min-height: 76px;
+    }
+
+    .metric-value {
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .metric-label {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .flow-step {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      background: #fff;
+      min-height: 74px;
+    }
+
+    .flow-count {
+      font-weight: 800;
+      color: var(--accent);
+      font-size: 20px;
+    }
+
+    .flow-label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      padding: 10px 16px 0;
+      background: var(--panel);
+    }
+
+    .tab {
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+      border-radius: 6px;
+      padding: 8px 12px;
+      cursor: pointer;
+      color: var(--muted);
+    }
+
+    .tab.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 8px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      background: var(--panel-soft);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tr {
+      cursor: pointer;
+    }
+
+    tr.active td {
+      background: var(--accent-soft);
+    }
+
+    .score {
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .level {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 12px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      white-space: nowrap;
+    }
+
+    .level.pending {
+      background: #fff7ed;
+      color: var(--warn);
+    }
+
+    .level.reject {
+      background: #fee2e2;
+      color: var(--risk);
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag {
+      border-radius: 999px;
+      padding: 4px 8px;
+      background: #edf2f7;
+      color: #475569;
+      font-size: 12px;
+    }
+
+    .tag.risk {
+      background: #fee2e2;
+      color: var(--risk);
+    }
+
+    .tag.ok {
+      background: #dcfce7;
+      color: var(--ok);
+    }
+
+    .detail-title {
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .detail-meta {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .detail-block {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .detail-block:last-child {
+      border-bottom: 0;
+    }
+
+    .list {
+      margin: 0;
+      padding-left: 18px;
+      line-height: 1.7;
+      color: #334155;
+      font-size: 13px;
+    }
+
+    .question-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .question-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+      padding: 11px;
+    }
+
+    .question-card-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+      align-items: flex-start;
+    }
+
+    .question-main {
+      font-weight: 800;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .question-group {
+      border-radius: 999px;
+      background: #e2e8f0;
+      color: #475569;
+      padding: 3px 8px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .follow-ups {
+      margin: 8px 0 0;
+      padding-left: 18px;
+      color: #334155;
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .question-meta {
+      display: grid;
+      gap: 5px;
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .dimension {
+      display: grid;
+      gap: 8px;
+    }
+
+    .dimension-row {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      background: var(--panel-soft);
+    }
+
+    .dimension-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .bar {
+      height: 7px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      background: var(--accent);
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .empty {
+      padding: 26px 16px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.7;
+    }
+
+    .error {
+      max-width: 760px;
+      margin: 40px auto;
+      background: #fff;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 22px;
+      color: #7f1d1d;
+      line-height: 1.7;
+    }
+
+    @media (max-width: 1180px) {
+      .layout {
+        grid-template-columns: 240px 1fr;
+      }
+
+      .right-panel {
+        grid-column: 1 / -1;
+      }
+
+      .scroll {
+        max-height: none;
+      }
+    }
+
+    @media (max-width: 760px) {
+      header {
+        display: block;
+      }
+
+      .status-row {
+        justify-content: flex-start;
+        margin-top: 12px;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .metric-grid,
+      .flow {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    .candidate-cards { display: flex; flex-direction: column; gap: 10px; }
+    .candidate-card { border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; overflow: hidden; }
+    .candidate-card:hover { border-color: #1a73e8; box-shadow: 0 2px 8px rgba(26,115,232,0.08); }
+    .candidate-card.expanded { border-color: #1a73e8; }
+    .candidate-card-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
+    .candidate-card-head .avatar { width: 36px; height: 36px; border-radius: 50%; background: #e8f0fe; color: #1a73e8; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px; flex-shrink: 0; }
+    .candidate-card-info { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .candidate-card-info b { font-size: 15px; color: #111827; }
+    .candidate-card-info small { color: #6b7280; font-size: 12px; }
+    .candidate-card-head strong { font-size: 20px; color: #1a73e8; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+    .candidate-card-head strong small { font-size: 11px; color: #9ca3af; font-weight: 400; }
+    .expand-icon { color: #9ca3af; font-size: 14px; flex-shrink: 0; }
+    .candidate-card-body { padding: 0 16px 16px; border-top: 1px solid #f3f4f6; }
+    /* 人才评价汇总（模块4） */
+    .talent-panel { min-width: 360px; }
+    .source-block, .pool-block { margin-bottom: 14px; }
+    .source-block h4, .pool-block h4 { margin: 0 0 8px; font-size: 13px; color: #1a73e8; }
+    .source-card { background: #f8fafc; border: 1px solid #eef2f6; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+    .source-head { font-size: 14px; margin-bottom: 4px; }
+    .source-meta, .source-reason, .source-action { font-size: 12px; color: #6b7280; margin-top: 2px; }
+    .source-action { color: #1a73e8; }
+    .compare-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .compare-table th, .compare-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eef2f6; }
+    .compare-table th { color: #6b7280; font-weight: 500; background: #f8fafc; }
+    .pool-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-bottom: 1px solid #eef2f6; font-size: 13px; }
+    .pool-name { flex: 1; }
+    .pool-score { color: #1a73e8; font-weight: 600; }
+    .pool-status { color: #6b7280; }
+    .pool-rank { display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; background: #1a73e8; color: #fff; border-radius: 50%; font-size: 11px; }
+    /* 真实简历投递 */
+    .import-submit { margin-top: 12px; }
+    .import-submit textarea { width: 100%; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px; font-size: 13px; resize: vertical; box-sizing: border-box; font-family: inherit; }
+    .import-submit .primary-button { margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>海信 AI 招聘智能体 HR 工作台</h1>
+        <p class="header-note">Demo 主线：岗位需求 -> 简历池 -> AI 筛选 -> Top 候选人 -> 面试题</p>
+      </div>
+      <div class="status-row" id="statusRow"></div>
+    </header>
+
+    <main id="appRoot" class="layout">
+      <section class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">岗位需求</h2>
+          <p class="panel-subtitle">先选岗位，再查看本批简历筛选闭环。</p>
+        </div>
+        <div class="job-list" id="jobList"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">简历筛选工作流</h2>
+          <p class="panel-subtitle" id="workflowSubtitle"></p>
+        </div>
+        <div class="scroll">
+          <div class="section">
+            <h3 class="section-title">岗位摘要</h3>
+            <div id="jobSummary"></div>
+          </div>
+          <div class="section">
+            <h3 class="section-title">导入简历批次</h3>
+            <div id="importPanel"></div>
+          </div>
+          <div class="section">
+            <h3 class="section-title">本批筛选漏斗</h3>
+            <div class="flow" id="flow"></div>
+          </div>
+          <div class="section">
+            <h3 class="section-title">批次指标</h3>
+            <div class="metric-grid" id="metrics"></div>
+          </div>
+          <div class="section">
+            <h3 class="section-title">筛选结果汇总</h3>
+            <div id="screeningSummary"></div>
+          </div>
+          <div class="tabs">
+            <button class="tab active" type="button" data-view="screened">AI 筛选排序</button>
+            <button class="tab" type="button" data-view="pool">原始简历池</button>
+          </div>
+          <div class="section">
+            <div id="candidateTable"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel talent-panel">
+        <div class="panel-head">
+          <h2 class="panel-title">人才评价汇总</h2>
+          <p class="panel-subtitle">先内部人才库 → 历史候选人复用 → 外招兜底；候选人对比 + 入库与 offer 递补。</p>
+        </div>
+        <div class="scroll">
+          <div class="section">
+            <h3 class="section-title">人才来源优先级</h3>
+            <div id="talentSources"></div>
+          </div>
+          <div class="section">
+            <h3 class="section-title">候选人对比</h3>
+            <div id="candidateComparison"></div>
+          </div>
+          <div class="section">
+            <h3 class="section-title">入库与 offer 递补</h3>
+            <div id="talentPool"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel right-panel">
+        <div class="panel-head">
+          <h2 class="panel-title">候选人详情</h2>
+          <p class="panel-subtitle">给 HR 和用人部门看的证据、风险和面试题。</p>
+        </div>
+        <div class="scroll" id="candidateDetail"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const files = {
+      jobs: "data/jobs.json",
+      candidates: "data/candidates.json",
+      resumes: "data/resumes.json",
+      batches: "data/screening_batches.json",
+      results: "data/screening_results.json",
+      questions: "data/interview_questions.json",
+      comparisons: "data/candidate_comparisons.json"
+    };
+
+    const optionalFiles = {
+      mockPool100: "data/mock_resume_pool_100.json"
+    };
+
+    const state = {
+      data: null,
+      jobId: null,
+      candidateId: null,
+      view: "screened",
+      importStep: 4,
+      importRunning: false
+    };
+
+    const parseSteps = [
+      "读取 PDF / ZIP",
+      "解析文本与版式",
+      "抽取教育/经历/技能",
+      "去重与脱敏",
+      "生成筛选名单"
+    ];
+
+    const rawPoolSizeByJob = {
+      "JOB-001": 100,
+      "JOB-004": 100
+    };
+
+    const rawRejectReasons = {
+      "JOB-001": [
+        "未明确接受倒班/站班",
+        "到岗时间不满足急招",
+        "期望薪资明显高于岗位",
+        "无制造业或体力岗位经历",
+        "稳定性信息不足",
+        "岗位意向偏离一线生产"
+      ],
+      "JOB-004": [
+        "缺少精益物流核心方法",
+        "学历或年限不满足要求",
+        "项目贡献描述不清",
+        "制造业现场经验不足",
+        "缺少数据化改善结果",
+        "跨部门协同证据不足"
+      ]
+    };
+
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function levelClass(level) {
+      if (level === "不推荐") return "reject";
+      if (level === "待确认") return "pending";
+      return "";
+    }
+
+    function warningText(item) {
+      if (!item) return "";
+      if (typeof item === "string") return item;
+      return item.risk_type || item.evidence || item.suggested_verify_question || JSON.stringify(item);
+    }
+
+    function normalizeStatus(status) {
+      if (status === "推荐") return "推荐";
+      if (status === "强推荐") return "强推荐";
+      if (status === "待确认") return "待确认";
+      if (status === "不推荐") return "不推荐";
+      return status || "待确认";
+    }
+
+    function normalizeMockPool(mockData, fallbackData) {
+      const pool = mockData.resume_pool || [];
+      const results = mockData.screening_results || [];
+      const questions = mockData.interview_questions || [];
+
+      const jobs = mockData.jobs?.length ? mockData.jobs.map((job) => ({
+        job_id: job.job_id || job.target_job_id,
+        job_title: job.job_title || job.target_job_title,
+        job_family: job.job_family || "",
+        employment_type: job.employment_type || "",
+        department: job.department || "",
+        location: job.location || "",
+        headcount: job.headcount || "",
+        salary_text: job.salary_text || job.salary_range || "",
+        jd_summary: job.jd_summary || `${job.job_title || job.target_job_title}，${job.urgency || "常规招聘"}，按岗位核心维度进行批量筛选。`,
+        hard_requirements: job.hard_requirements || (job.dimensions || []).map((item) => item.name),
+        soft_requirements: job.soft_requirements || []
+      })) : fallbackData.jobs;
+
+      const candidates = pool.map((item) => ({
+        candidate_id: item.candidate_id,
+        candidate_name: item.candidate_name,
+        target_job_id: item.target_job_id,
+        batch_id: item.batch_id || `BATCH-${item.target_job_id?.replace("JOB-", "") || "001"}`,
+        candidate_profile_type: item.detail_level || "mock_pool",
+        age_range: item.age_range || "",
+        education: item.education || "",
+        major: item.major || "",
+        work_years: item.work_years || "",
+        current_location: item.current_location || "",
+        expected_salary: item.expected_salary || "",
+        availability: item.availability || "",
+        job_intention: item.job_intention || "",
+        base_tags: item.skills || item.tags || [],
+        privacy_level: item.privacy_level || "mock_desensitized"
+      }));
+
+      const resumes = pool.map((item) => ({
+        resume_id: `RESUME-${item.candidate_id}`,
+        candidate_id: item.candidate_id,
+        target_job_id: item.target_job_id,
+        resume_text: item.raw_resume_text || "",
+        work_experience: (item.work_experience || []).map((exp) => {
+          if (typeof exp === "string") return exp;
+          const achievements = (exp.achievements || []).join("；");
+          return `${exp.role || "相关岗位"} · ${exp.company_type || "相关企业"} · ${exp.duration || ""}${achievements ? `：${achievements}` : ""}`;
+        }),
+        skills: item.skills || [],
+        certificates: item.certificates || [],
+        project_experience: item.project_or_work_highlights || [],
+        risk_signals: item.risk_signals || []
+      }));
+
+      const normalizedResults = results.map((item, index) => {
+        const status = normalizeStatus(item.screening_status || item.recommendation_level);
+        const mismatch = [
+          ...(item.pending_reasons || []),
+          ...(item.reject_reasons || [])
+        ];
+        return {
+          result_id: item.result_id || `RESULT-${item.candidate_id}`,
+          batch_id: item.batch_id || `BATCH-${item.target_job_id?.replace("JOB-", "") || "001"}`,
+          job_id: item.target_job_id || item.job_id,
+          candidate_id: item.candidate_id,
+          resume_id: `RESUME-${item.candidate_id}`,
+          rank: item.rank || index + 1,
+          match_score: item.match_score || 0,
+          recommendation_level: status,
+          dimension_scores: item.dimension_scores || [],
+          matched_tags: item.recommend_reasons || [],
+          matched_evidence: item.recommend_reasons || [],
+          mismatch_reasons: mismatch,
+          risk_warnings: item.risk_warnings || [],
+          interview_focus: [],
+          hr_summary: item.decision_summary || "",
+          next_action: item.next_action || ""
+        };
+      });
+
+      const comparisons = jobs.map((job) => {
+        const jobResults = normalizedResults
+          .filter((item) => item.job_id === job.job_id)
+          .sort((a, b) => (a.rank || 999) - (b.rank || 999));
+        const topIds = jobResults
+          .filter((item) => ["强推荐", "推荐"].includes(item.recommendation_level))
+          .slice(0, 10)
+          .map((item) => item.candidate_id);
+        return {
+          comparison_id: `COMP-${job.job_id}`,
+          batch_id: `BATCH-${job.job_id.replace("JOB-", "")}`,
+          job_id: job.job_id,
+          candidate_ids: jobResults.map((item) => item.candidate_id),
+          top_candidate_ids: topIds,
+          backup_candidate_ids: jobResults
+            .filter((item) => item.recommendation_level === "待确认")
+            .slice(0, 10)
+            .map((item) => item.candidate_id),
+          comparison_dimensions: ["综合匹配分", "推荐原因", "待确认原因", "淘汰原因", "风险核验"],
+          summary: `${job.job_title} 共导入 ${jobResults.length} 份简历，输出 ${topIds.length} 名推荐候选人。`,
+          recommended_action: "优先安排推荐候选人面试；待确认候选人先电话核验；不推荐候选人归档原因。"
+        };
+      });
+
+      return {
+        ...fallbackData,
+        jobs,
+        candidates,
+        resumes,
+        results: normalizedResults,
+        questions,
+        comparisons,
+        sourceLabel: fallbackData.sourceLabel || "Trae 100 份模拟简历",
+        summary: mockData.summary || [],
+        talent_sources: mockData.talent_sources || [],
+        candidate_comparisons: mockData.candidate_comparisons || [],
+        talent_pool: mockData.talent_pool || []
+      };
+    }
+
+    function getCandidate(candidateId) {
+      return state.data.candidates.find((item) => item.candidate_id === candidateId);
+    }
+
+    function getResume(candidateId) {
+      return state.data.resumes.find((item) => item.candidate_id === candidateId);
+    }
+
+    function getResult(candidateId) {
+      return state.data.results.find((item) => item.candidate_id === candidateId && item.job_id === state.jobId);
+    }
+
+    function currentJob() {
+      return state.data.jobs.find((item) => item.job_id === state.jobId);
+    }
+
+    function currentResults() {
+      return state.data.results
+        .filter((item) => item.job_id === state.jobId)
+        .sort((a, b) => a.rank - b.rank);
+    }
+
+    function currentCandidates() {
+      return state.data.candidates.filter((item) => item.target_job_id === state.jobId);
+    }
+
+    function currentRawPoolSize() {
+      return currentCandidates().length;
+    }
+
+    function currentRawPoolRows() {
+      const realRows = currentCandidates().map((candidate) => ({
+        type: "real",
+        candidate,
+        result: getResult(candidate.candidate_id),
+        reason: "进入详细评估样本"
+      }));
+      const reasons = rawRejectReasons[state.jobId] || ["基础条件不匹配"];
+      const total = currentRawPoolSize();
+      const virtualRows = [];
+
+      for (let index = realRows.length + 1; index <= total; index += 1) {
+        const reason = reasons[(index - realRows.length - 1) % reasons.length];
+        const score = Math.max(28, 70 - ((index * 7) % 36));
+        virtualRows.push({
+          type: "virtual",
+          candidate: {
+            candidate_id: `POOL-${state.jobId.replace("JOB-", "")}-${String(index).padStart(3, "0")}`,
+            candidate_name: `原始投递${String(index).padStart(3, "0")}`,
+            education: index % 3 === 0 ? "大专" : index % 4 === 0 ? "本科" : "高中/中专",
+            work_years: index % 5 === 0 ? "应届/不足1年" : `${(index % 8) + 1}年`,
+            current_location: index % 2 === 0 ? "佛山" : "广东省内",
+            availability: index % 4 === 0 ? "到岗未填" : "1个月以上"
+          },
+          result: {
+            match_score: score,
+            recommendation_level: score >= 60 ? "待确认" : "不推荐",
+            mismatch_reasons: [reason],
+            risk_warnings: []
+          },
+          reason
+        });
+      }
+
+      return [...realRows, ...virtualRows];
+    }
+
+    function currentDecisionRows() {
+      const explicitRows = currentResults();
+      if (explicitRows.length >= currentRawPoolSize()) return explicitRows;
+      return currentRawPoolRows().map((row) => row.result).filter(Boolean);
+    }
+
+    function statusBucket(result) {
+      const level = normalizeStatus(result?.recommendation_level);
+      if (["强推荐", "推荐"].includes(level)) return "推荐";
+      if (level === "不推荐") return "不推荐";
+      return "待确认";
+    }
+
+    function collectReasons(rows, bucket) {
+      const counts = new Map();
+      rows.forEach((result) => {
+        if (statusBucket(result) !== bucket) return;
+        const rawReasons = bucket === "推荐"
+          ? (result.matched_evidence || result.matched_tags || [])
+          : [...(result.mismatch_reasons || []), ...(result.risk_warnings || [])].map(warningText);
+        const reasons = rawReasons.length ? rawReasons : [bucket === "不推荐" ? "基础条件不匹配" : "关键信息需确认"];
+        reasons.slice(0, 2).forEach((reason) => {
+          const text = warningText(reason);
+          counts.set(text, (counts.get(text) || 0) + 1);
+        });
+      });
+      return Array.from(counts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 6);
+    }
+
+    function currentComparison() {
+      return state.data.comparisons.find((item) => item.job_id === state.jobId);
+    }
+
+    function renderStatus() {
+      const jobs = state.data.jobs.length;
+      const candidates = state.data.candidates.length;
+      const results = state.data.results.length;
+      const questions = state.data.questions.length;
+      $("#statusRow").innerHTML = `
+        <span class="pill">数据源：${escapeHtml(state.data.sourceLabel || "本地 Mock")}</span>
+        <span class="pill">${jobs} 个岗位</span>
+        <span class="pill">${candidates} 份简历</span>
+        <span class="pill">${results} 条筛选结果</span>
+        <span class="pill">${questions} 道面试题</span>
+      `;
+    }
+
+    function renderJobs() {
+      $("#jobList").innerHTML = state.data.jobs.map((job) => `
+        <button class="job-button ${job.job_id === state.jobId ? "active" : ""}" type="button" data-job-id="${job.job_id}">
+          <div class="job-title">${escapeHtml(job.job_title)}</div>
+          <div class="job-meta">
+            ${escapeHtml(job.department)} · ${escapeHtml(job.location)}<br>
+            HC ${escapeHtml(job.headcount)} · ${escapeHtml(job.salary_text)}
+          </div>
+        </button>
+      `).join("");
+
+      $$(".job-button").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.jobId = button.dataset.jobId;
+          const first = currentResults()[0] || currentCandidates()[0];
+          state.candidateId = first ? first.candidate_id : null;
+          render();
+        });
+      });
+    }
+
+    function renderJobSummary() {
+      const job = currentJob();
+      $("#workflowSubtitle").textContent = `${job.job_title} · ${job.department} · ${job.location}`;
+      $("#jobSummary").innerHTML = `
+        <div class="detail-meta">${escapeHtml(job.jd_summary)}</div>
+        <div class="tags" style="margin-top: 10px;">
+          ${job.hard_requirements.slice(0, 4).map((item) => `<span class="tag ok">${escapeHtml(item)}</span>`).join("")}
+        </div>
+      `;
+    }
+
+    function renderImportPanel() {
+      const total = currentRawPoolSize();
+      const candidateName = getCandidate(state.candidateId)?.candidate_name || "";
+      const jobTitle = currentJob().job_title;
+
+      $("#importPanel").innerHTML = `
+        <div class="import-card">
+          <div class="import-top">
+            <div class="upload-box">
+              <div class="upload-title">已接入：${escapeHtml(jobTitle)}（飞书真实数据）</div>
+              <div class="hint">岗位、简历与 AI 评分均来自飞书多维表格，实时同步。</div>
+              <div class="tags" style="margin-top: 9px;">
+                <span class="tag">${total} 份简历</span>
+                <span class="tag ok">已结构化</span>
+                <span class="tag">AI 评分完成</span>
+              </div>
+            </div>
+            <button class="primary-button" type="button" id="collectForm">打开面试采集表单</button>
+          </div>
+          <div class="import-submit">
+            <textarea id="resumeInput" rows="4" placeholder="粘贴真实简历文本，AI 自动结构化 + 评分（例：我叫李华，35岁，大专，物流管理专业，8年采购经验，会 ERP/WMS，接受倒班，随时到岗）"></textarea>
+            <button class="primary-button" type="button" id="importResumeBtn">投递并解析</button>
+            <div class="hint" id="importResult"></div>
+          </div>
+          <div class="hint" style="margin-top: 8px;">下方为筛选漏斗：简历 → AI 初筛 → 输出 Top 候选人和面试题。</div>
+        </div>
+      `;
+
+      $("#collectForm").addEventListener("click", () => {
+        window.open(`interview_form.html?candidate=${encodeURIComponent(candidateName)}`, "_blank");
+      });
+
+      $("#importResumeBtn").addEventListener("click", async () => {
+        const text = $("#resumeInput").value.trim();
+        const resultBox = $("#importResult");
+        if (!text) { resultBox.textContent = "请先粘贴简历文本"; return; }
+        resultBox.textContent = "解析中（LLM 结构化 + 评分）…";
+        try {
+          const API_BASE = `http://${location.hostname}:8000`;
+          const resp = await fetch(`${API_BASE}/import_resume`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text, job: jobTitle })
+          });
+          const data = await resp.json();
+          if (data.score) {
+            resultBox.textContent = `✅ ${data.parsed.姓名 || "候选人"} 已入库并评分：匹配度 ${data.score.match_score} 分，${data.score.screening_status}（${data.score.decision_summary}）`;
+            await loadData();
+          } else {
+            resultBox.textContent = `解析失败：${JSON.stringify(data).slice(0, 200)}`;
+          }
+        } catch (e) {
+          resultBox.textContent = `投递失败：${e.message}`;
+        }
+      });
+    }
+
+    function renderFlow() {
+      const results = currentResults();
+      const total = currentRawPoolSize();
+      const strong = results.filter((item) => item.recommendation_level === "强推荐").length;
+      const recommend = results.filter((item) => item.recommendation_level === "推荐").length;
+      const pending = results.filter((item) => item.recommendation_level === "待确认").length;
+      const reject = results.filter((item) => item.recommendation_level === "不推荐").length;
+      const top = currentComparison()?.top_candidate_ids?.length || strong + recommend;
+
+      const steps = [
+        [total, "收到原始简历"],
+        [total, "AI 完成初筛打标"],
+        [strong + recommend, "推荐进入面试"],
+        [Math.max(total - top, pending + reject), "淘汰 / 待核验"],
+        [top, "输出 Top 候选人"]
+      ];
+
+      $("#flow").innerHTML = steps.map(([count, label]) => `
+        <div class="flow-step">
+          <div class="flow-count">${count}</div>
+          <div class="flow-label">${escapeHtml(label)}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderMetrics() {
+      const results = currentResults();
+      const pendingCount = results.filter((item) => normalizeStatus(item.recommendation_level) === "待确认").length;
+      const topScore = results[0]?.match_score || 0;
+      const comparison = currentComparison();
+      const metrics = [
+        [currentRawPoolSize(), "原始投递量"],
+        [topScore, "最高匹配分"],
+        [pendingCount, "待电话确认"],
+        [comparison?.top_candidate_ids?.length || 0, "Top 候选人"]
+      ];
+
+      $("#metrics").innerHTML = metrics.map(([value, label]) => `
+        <div class="metric">
+          <div class="metric-value">${value}</div>
+          <div class="metric-label">${escapeHtml(label)}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderScreeningSummary() {
+      const rows = currentDecisionRows();
+      const recommended = rows.filter((item) => statusBucket(item) === "推荐").length;
+      const pending = rows.filter((item) => statusBucket(item) === "待确认").length;
+      const rejected = rows.filter((item) => statusBucket(item) === "不推荐").length;
+      const pendingReasons = collectReasons(rows, "待确认");
+      const rejectReasons = collectReasons(rows, "不推荐");
+      const topIds = currentComparison()?.top_candidate_ids || currentResults()
+        .filter((item) => statusBucket(item) === "推荐")
+        .slice(0, 10)
+        .map((item) => item.candidate_id);
+
+      function reasonRows(items, emptyText) {
+        if (!items.length) return `<div class="hint">${escapeHtml(emptyText)}</div>`;
+        return items.map(([reason, count]) => `
+          <div class="reason-row">
+            <span>${escapeHtml(reason)}</span>
+            <strong>${count}</strong>
+          </div>
+        `).join("");
+      }
+
+      $("#screeningSummary").innerHTML = `
+        <div class="metric-grid" style="margin-bottom: 10px;">
+          <div class="metric"><div class="metric-value">${recommended}</div><div class="metric-label">推荐进入面试</div></div>
+          <div class="metric"><div class="metric-value">${pending}</div><div class="metric-label">待电话确认</div></div>
+          <div class="metric"><div class="metric-value">${rejected}</div><div class="metric-label">不推荐 / 暂缓</div></div>
+          <div class="metric"><div class="metric-value">${topIds.length}</div><div class="metric-label">Top 候选人</div></div>
+        </div>
+        <div class="summary-grid">
+          <div class="summary-box">
+            <h4>待确认原因分布</h4>
+            ${reasonRows(pendingReasons, "暂无待确认原因。")}
+          </div>
+          <div class="summary-box">
+            <h4>淘汰原因分布</h4>
+            ${reasonRows(rejectReasons, "暂无淘汰原因。")}
+          </div>
+        </div>
+        <div class="hint" style="margin-top: 10px;">Top 候选人：${topIds.map(escapeHtml).join("、") || "暂无"}</div>
+      `;
+    }
+
+    function renderCandidateTable() {
+      const rows = state.view === "screened"
+        ? currentResults().map((result) => ({ candidate: getCandidate(result.candidate_id), result }))
+        : currentRawPoolRows().map((row) => ({ candidate: row.candidate, result: row.result, type: row.type, reason: row.reason }));
+
+      const caption = state.view === "screened"
+        ? `AI 筛选排序：展示 ${rows.length} 份详细评估样本，用于说明评分证据、风险和面试题。`
+        : `原始简历池：模拟 ${rows.length} 份原始投递，其中少量进入详细评估，其余用于展示初筛淘汰原因分布。`;
+
+      $("#candidateTable").innerHTML = `
+        <div class="hint" style="margin-bottom: 10px;">${escapeHtml(caption)}</div>
+        <table>
+          <thead>
+            <tr>
+              <th>候选人</th>
+              <th>基础信息</th>
+              <th>AI 判断</th>
+              <th>风险 / 扣分</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(({ candidate, result, type }) => {
+              const warnings = [...(result?.mismatch_reasons || []), ...(result?.risk_warnings || [])].map(warningText);
+              return `
+                <tr class="${candidate.candidate_id === state.candidateId ? "active" : ""}" ${type === "virtual" ? "" : `data-candidate-id="${candidate.candidate_id}"`}>
+                  <td>
+                    <strong>${escapeHtml(candidate.candidate_name)}</strong><br>
+                    <span class="hint">${escapeHtml(candidate.candidate_id)}</span>
+                  </td>
+                  <td>
+                    ${escapeHtml(candidate.education)} · ${escapeHtml(candidate.work_years)}<br>
+                    <span class="hint">${escapeHtml(candidate.current_location || "地点未填")} · ${escapeHtml(candidate.availability || "到岗未填")}</span>
+                  </td>
+                  <td>
+                    ${result ? `<span class="score">${result.match_score}</span> <span class="level ${levelClass(result.recommendation_level)}">${escapeHtml(result.recommendation_level)}</span>` : "<span class='hint'>未筛选</span>"}
+                  </td>
+                  <td>
+                    ${warnings.length ? warnings.slice(0, 2).map((item) => `<span class="tag risk">${escapeHtml(item)}</span>`).join(" ") : "<span class='tag ok'>暂无高优先级风险</span>"}
+                  </td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      `;
+
+      $$("#candidateTable tr[data-candidate-id]").forEach((row) => {
+        row.addEventListener("click", () => {
+          state.candidateId = row.dataset.candidateId;
+          renderCandidateTable();
+          renderCandidateDetail();
+        });
+      });
+    }
+
+    function renderCandidateDetail() {
+      const candidates = currentCandidates().sort((a, b) => {
+        const ra = getResult(a.candidate_id)?.match_score ?? 0;
+        const rb = getResult(b.candidate_id)?.match_score ?? 0;
+        return rb - ra;
+      });
+      if (!candidates.length) {
+        $("#candidateDetail").innerHTML = `<div class="empty">当前岗位暂无候选人。</div>`;
+        return;
+      }
+
+      $("#candidateDetail").innerHTML = `
+        <div class="candidate-cards">
+          ${candidates.map((candidate) => {
+            const result = getResult(candidate.candidate_id);
+            const expanded = state.candidateId === candidate.candidate_id;
+            return `
+              <div class="candidate-card ${expanded ? "expanded" : ""}" data-candidate-id="${escapeHtml(candidate.candidate_id)}">
+                <div class="candidate-card-head">
+                  <span class="avatar">${escapeHtml(candidate.initials || candidate.candidate_name.slice(0, 1))}</span>
+                  <div class="candidate-card-info">
+                    <b>${escapeHtml(candidate.candidate_name)}</b>
+                    <small>${escapeHtml(candidate.education)} · ${escapeHtml(candidate.major)} · ${escapeHtml(candidate.work_years)}年</small>
+                  </div>
+                  <strong>${result?.match_score ?? "-"}<small>匹配分</small></strong>
+                  <span class="level ${levelClass(result?.recommendation_level)}">${escapeHtml(result?.recommendation_level || "")}</span>
+                  <span class="expand-icon">${expanded ? "▾" : "▸"}</span>
+                </div>
+                ${expanded ? renderCandidateDetailBody(candidate, result) : ""}
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+
+      $$("#candidateDetail .candidate-card").forEach((card) => {
+        card.addEventListener("click", () => {
+          const id = card.dataset.candidateId;
+          state.candidateId = state.candidateId === id ? null : id;
+          renderCandidateDetail();
+        });
+      });
+    }
+
+    function renderCandidateDetailBody(candidate, result) {
+      const resume = getResume(candidate.candidate_id);
+      const questions = state.data.questions
+        .filter((item) => item.candidate_id === candidate.candidate_id)
+        .sort((a, b) => a.priority - b.priority);
+      const warnings = [...(result?.mismatch_reasons || []), ...(result?.risk_warnings || [])].map(warningText);
+
+      return `
+        <div class="candidate-card-body">
+          <div class="detail-meta" style="margin-bottom: 8px;">
+            ${escapeHtml(candidate.current_location || "地点未填")} · ${escapeHtml(candidate.expected_salary || "薪资未填")} · ${escapeHtml(candidate.availability || "到岗未填")}
+          </div>
+          <div class="tags" style="margin-bottom: 10px;">
+            ${candidate.base_tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
+          </div>
+          <div class="detail-block">
+            <h3 class="section-title">AI 推荐结论</h3>
+            <p class="detail-meta">${escapeHtml(result?.hr_summary || "暂无")}</p>
+          </div>
+          <div class="detail-block">
+            <h3 class="section-title">评分证据</h3>
+            <div class="dimension">
+              ${(result?.dimension_scores || []).map((item) => {
+                const width = Math.round((item.score / Math.max(item.weight, 1)) * 100);
+                return `
+                  <div class="dimension-row">
+                    <div class="dimension-top">
+                      <span>${escapeHtml(item.dimension_name)}</span>
+                      <span>${item.score}/${item.weight}</span>
+                    </div>
+                    <div class="bar"><span style="width: ${Math.min(width, 100)}%;"></span></div>
+                    <div class="hint">${escapeHtml(item.evidence || item.deduction_reason || "暂无证据")}</div>
+                  </div>
+                `;
+              }).join("") || `<div class="hint">暂无评分维度。</div>`}
+            </div>
+          </div>
+          <div class="detail-block">
+            <h3 class="section-title">风险核验点</h3>
+            ${warnings.length ? `<ul class="list">${warnings.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : `<div class="tag ok">暂无高优先级风险，但仍需面试核验关键信息。</div>`}
+          </div>
+          <div class="detail-block">
+            <h3 class="section-title">面试题</h3>
+            <div class="question-list">
+              ${questions.map((item) => {
+                const main = item.main_question || item.question_text || "";
+                const why = item.why_ask || item.question_reason || "";
+                return `
+                  <div class="question-card">
+                    <div class="question-card-head">
+                      <div class="question-main">${item.priority}. ${escapeHtml(main)}</div>
+                      <span class="question-group">${escapeHtml(item.question_group || item.question_type || "面试题")}</span>
+                    </div>
+                    <div class="question-meta">
+                      <div>为什么问：${escapeHtml(why)}</div>
+                      <div>期望信号：${escapeHtml(item.expected_signal || "")}</div>
+                      <div>风险信号：${escapeHtml(item.risk_signal || "回答空泛、回避细节、无法提供证据")}</div>
+                    </div>
+                  </div>
+                `;
+              }).join("") || `<div class="hint">暂无面试题。</div>`}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function bindTabs() {
+      $$(".tab").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.view = button.dataset.view;
+          syncTabs();
+          renderCandidateTable();
+        });
+      });
+    }
+
+    function syncTabs() {
+      $$(".tab").forEach((item) => item.classList.toggle("active", item.dataset.view === state.view));
+    }
+
+    function runImportDemo() {
+      if (state.importRunning) return;
+      state.importRunning = true;
+      state.importStep = 0;
+      render();
+
+      let step = 0;
+      const timer = setInterval(() => {
+        step += 1;
+        state.importStep = Math.min(step, parseSteps.length - 1);
+        if (step >= parseSteps.length - 1) {
+          clearInterval(timer);
+          state.importRunning = false;
+          state.importStep = parseSteps.length - 1;
+          state.view = "screened";
+        }
+        render();
+      }, 650);
+    }
+
+    function render() {
+      renderStatus();
+      renderJobs();
+      renderJobSummary();
+      renderImportPanel();
+      renderFlow();
+      renderMetrics();
+      renderScreeningSummary();
+      syncTabs();
+      renderCandidateTable();
+      renderCandidateDetail();
+      renderTalentSources();
+      renderComparison();
+      renderTalentPool();
+    }
+
+    function currentTalentSources() {
+      return (state.data.talent_sources || []).find((item) => item.job_id === state.jobId);
+    }
+    function currentCandidateComparison() {
+      return (state.data.candidate_comparisons || []).find((item) => item.job_id === state.jobId);
+    }
+    function currentTalentPool() {
+      return (state.data.talent_pool || []).find((item) => item.job_id === state.jobId);
+    }
+
+    function renderTalentSources() {
+      const ts = currentTalentSources();
+      const box = $("#talentSources");
+      if (!ts) { box.innerHTML = "<p class='hint'>暂无人才来源数据。</p>"; return; }
+      const internalRows = (ts.internal || []).map((i) => `
+        <div class="source-card">
+          <div class="source-head"><strong>${escapeHtml(i.name)}</strong> · ${escapeHtml(i.current_role)} · ${escapeHtml(i.department)}</div>
+          <div class="source-meta">匹配度 ${i.match_score} · 技能：${escapeHtml(i.skills)} · ${escapeHtml(i.availability)}</div>
+          <div class="source-reason">${escapeHtml(i.reason)}${i.risk && i.risk !== "无" && i.risk !== "低" ? ` · 风险：${escapeHtml(i.risk)}` : ""}</div>
+          <div class="source-action">${escapeHtml(i.action)}</div>
+        </div>`).join("") || "<p class='hint'>无内部可调岗候选人。</p>";
+      const historicalRows = (ts.historical || []).map((h) => `
+        <div class="source-card">
+          <div class="source-head"><strong>${escapeHtml(h.name)}</strong> · ${escapeHtml(h.previous_job)} · ${escapeHtml(h.interview_result)}</div>
+          <div class="source-meta">匹配度 ${h.match_score} · offer：${escapeHtml(h.offer_status)}${h.no_show_reason && h.no_show_reason !== "无" ? ` · 未到岗：${escapeHtml(h.no_show_reason)}` : ""}</div>
+          <div class="source-reason">${escapeHtml(h.reason)}</div>
+          <div class="source-action">${escapeHtml(h.action)}</div>
+        </div>`).join("") || "<p class='hint'>无历史可复用候选人。</p>";
+      box.innerHTML = `
+        <div class="source-block"><h4>① 内部人才库（优先转岗）</h4>${internalRows}</div>
+        <div class="source-block"><h4>② 历史候选人复用（曾面试 / 曾offer）</h4>${historicalRows}</div>
+        <div class="source-block"><h4>③ 外招兜底</h4><p class="hint">${ts.external_count} 份外招简历进入下方筛选闭环。</p></div>`;
+    }
+
+    function renderComparison() {
+      const cmp = currentCandidateComparison();
+      const box = $("#candidateComparison");
+      if (!cmp || !(cmp.top_candidates || []).length) { box.innerHTML = "<p class='hint'>暂无对比数据。</p>"; return; }
+      const dims = cmp.comparison_dimensions || [];
+      const rows = (cmp.top_candidates || []).map((c) => `
+        <tr>
+          <td><strong>${escapeHtml(c.candidate_name)}</strong></td>
+          <td>${c.match_score}</td>
+          <td>${escapeHtml(c.screening_status)}</td>
+          <td>${(c.risk_warnings || []).slice(0, 3).map(escapeHtml).join("、") || "无"}</td>
+        </tr>`).join("");
+      box.innerHTML = `
+        <table class="compare-table">
+          <thead><tr><th>候选人</th><th>匹配分</th><th>结论</th><th>风险核验点</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <p class="hint">对比维度：${dims.map(escapeHtml).join("、")}</p>`;
+    }
+
+    function renderTalentPool() {
+      const tp = currentTalentPool();
+      const box = $("#talentPool");
+      if (!tp) { box.innerHTML = "<p class='hint'>暂无入库数据。</p>"; return; }
+      const qualified = (tp.qualified || []).slice(0, 6).map((q) => `
+        <div class="pool-row">
+          <span class="pool-name">${escapeHtml(q.candidate_name)}</span>
+          <span class="pool-score">${q.match_score}分</span>
+          <span class="pool-status">${escapeHtml(q.screening_status)}</span>
+        </div>`).join("");
+      const replacement = (tp.replacement_order || []).map((r, idx) => `
+        <div class="pool-row"><span class="pool-rank">${idx + 1}</span><span class="pool-name">${escapeHtml(r.candidate_name)}</span><span class="pool-score">${r.match_score}分</span></div>`).join("");
+      box.innerHTML = `
+        <div class="pool-block"><h4>合格入库（${tp.qualified.length} 人）</h4>${qualified}</div>
+        <div class="pool-block"><h4>offer 放弃递补顺序</h4>${replacement || "<p class='hint'>暂无递补。</p>"}</div>`;
+    }
+
+    async function loadData() {
+      // 后端地址：自动用「当前页面的 host」推断，这样本机(127.0.0.1)和局域网设备(192.168.x.x)都能访问
+      const API_BASE = `http://${location.hostname}:8000`;
+      const emptyFallback = { jobs: [], candidates: [], resumes: [], results: [], questions: [], comparisons: [], sourceLabel: "飞书真实数据" };
+
+      // 优先：从后端 /demo_data 读飞书真实数据
+      try {
+        const realResponse = await fetch(`${API_BASE}/demo_data`, { cache: "no-store" });
+        if (realResponse.ok) {
+          const realData = await realResponse.json();
+          if (realData.jobs?.length && realData.screening_results?.length) {
+            return normalizeMockPool(realData, emptyFallback);
+          }
+        }
+      } catch (error) {
+        // 后端不可达，降级本地 mock
+      }
+
+      // 降级：本地 mock 数据
+      const entries = await Promise.all(
+        Object.entries(files).map(async ([key, path]) => {
+          const response = await fetch(path);
+          if (!response.ok) throw new Error(`${path} 加载失败`);
+          return [key, await response.json()];
+        })
+      );
+      const fallbackData = {
+        ...Object.fromEntries(entries),
+        sourceLabel: "内置 12 份详细样本"
+      };
+
+      try {
+        const mockResponse = await fetch(optionalFiles.mockPool100, { cache: "no-store" });
+        if (!mockResponse.ok) return fallbackData;
+        const mockData = await mockResponse.json();
+        if (!mockData.resume_pool?.length || !mockData.screening_results?.length) return fallbackData;
+        return normalizeMockPool(mockData, fallbackData);
+      } catch (error) {
+        return fallbackData;
+      }
+    }
+
+    loadData()
+      .then((data) => {
+        state.data = data;
+        state.jobId = data.jobs[0]?.job_id || null;
+        state.candidateId = null; // 默认折叠，点卡片再展开
+        bindTabs();
+        render();
+      })
+      .catch((error) => {
+        document.body.innerHTML = `
+          <div class="error">
+            <h1>数据加载失败</h1>
+            <p>${escapeHtml(error.message)}</p>
+            <p>请通过本地服务打开页面，例如在项目目录运行 <code>python -m http.server 8765</code> 后访问 <code>http://localhost:8765/hr_workbench.html</code>。</p>
+          </div>
+        `;
+      });
+  </script>
+</body>
+</html>
