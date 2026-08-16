@@ -1257,14 +1257,12 @@
       const recommend = results.filter((item) => item.recommendation_level === "推荐").length;
       const pending = results.filter((item) => item.recommendation_level === "待确认").length;
       const reject = results.filter((item) => item.recommendation_level === "不推荐").length;
-      const top = currentComparison()?.top_candidate_ids?.length || strong + recommend;
-
       const steps = [
         [total, "收到原始简历"],
         [total, "AI 完成初筛打标"],
         [strong + recommend, "推荐进入面试"],
-        [Math.max(total - top, pending + reject), "淘汰 / 待核验"],
-        [top, "输出 Top 候选人"]
+        [pending, "待确认"],
+        [reject, "不推荐"]
       ];
 
       $("#flow").innerHTML = steps.map(([count, label]) => `
