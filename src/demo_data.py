@@ -29,6 +29,17 @@ QUESTION_SIGNALS = {
 
 
 # ============ 模块4：人才评价汇总 ============
+def _parse_score(v) -> float:
+    """安全解析「匹配度」：兼容数字、字符串、百分比字符串（如 "90%"），异常返回 0。"""
+    import re
+    if v is None:
+        return 0.0
+    if isinstance(v, (int, float)):
+        return float(v)
+    m = re.search(r"[-+]?\d+(\.\d+)?", str(v))
+    return float(m.group()) if m else 0.0
+
+
 def _talent_internal_item(fields):
     return {
         "name": fields.get("姓名", ""),
@@ -36,7 +47,7 @@ def _talent_internal_item(fields):
         "department": fields.get("部门", ""),
         "skills": fields.get("技能", ""),
         "availability": fields.get("可到岗", ""),
-        "match_score": int(float(fields.get("匹配度") or 0)),
+        "match_score": int(_parse_score(fields.get("匹配度"))),
         "reason": fields.get("推荐理由", ""),
         "risk": fields.get("风险", ""),
         "action": fields.get("动作", ""),
@@ -51,7 +62,7 @@ def _talent_historical_item(fields):
         "offer_status": fields.get("offer状态", ""),
         "no_show_reason": fields.get("未到岗原因", ""),
         "skills": fields.get("技能", ""),
-        "match_score": int(float(fields.get("匹配度") or 0)),
+        "match_score": int(_parse_score(fields.get("匹配度"))),
         "reason": fields.get("理由", ""),
         "risk": fields.get("风险", ""),
         "action": fields.get("动作", ""),
@@ -60,15 +71,15 @@ def _talent_historical_item(fields):
 
 def build_talent_sources(feishu, jobs):
     """人才来源优先级：内部人才库 → 历史候选人 → 外招（每岗位取 top3）。"""
-    internal = feishu.get_records(INTERNAL_TALENT_TABLE_ID)
-    historical = feishu.get_records(HISTORICAL_TALENT_TABLE_ID)
+    internal = feishu.get_records(INTERNAL_TALENT_TABLE_ID) if INTERNAL_TALENT_TABLE_ID else []
+    historical = feishu.get_records(HISTORICAL_TALENT_TABLE_ID) if HISTORICAL_TALENT_TABLE_ID else []
     result = []
     for job in jobs:
         title = job["job_title"]
         int_matches = [r["fields"] for r in internal if title in (r["fields"].get("可调岗岗位", "") or "")]
-        int_matches.sort(key=lambda f: -float(f.get("匹配度") or 0))
+        int_matches.sort(key=lambda f: -_parse_score(f.get("匹配度")))
         hist_matches = [r["fields"] for r in historical if title in (r["fields"].get("目标岗位", "") or "")]
-        hist_matches.sort(key=lambda f: -float(f.get("匹配度") or 0))
+        hist_matches.sort(key=lambda f: -_parse_score(f.get("匹配度")))
         result.append({
             "job_id": job["job_id"],
             "job_title": title,
