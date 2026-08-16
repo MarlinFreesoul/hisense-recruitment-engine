@@ -51,6 +51,42 @@ def format_questions_text(questions: list) -> str:
     return "\n".join(lines)
 
 
+def summarize_interview(candidate_name: str, job_name: str, conversation: str) -> dict:
+    """面试纪要自动梳理：线上面试对话 → 结构化纪要 + 评分评级。LLM 梳理，失败降级确定性规则。"""
+    try:
+        import re
+        import requests
+        from config import DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL, DEEPSEEK_MODEL
+        if not DEEPSEEK_API_KEY:
+            raise ValueError("无 DEEPSEEK_API_KEY")
+        prompt = f"""你是面试官助手。根据下面的面试对话，梳理一份结构化面试纪要，只返回 JSON：
+{{"纪要":"2-3 句话概括候选人表现与结论","亮点":[],"风险":[],"评级":"A/B/C/备选/暂缓"}}
+面试岗位：{job_name}；候选人：{candidate_name}
+对话：
+---
+{conversation[:3000]}
+---"""
+        resp = requests.post(
+            f"{DEEPSEEK_BASE_URL}/chat/completions",
+            headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"},
+            json={"model": DEEPSEEK_MODEL, "messages": [{"role": "user", "content": prompt}], "temperature": 0.1},
+            timeout=60,
+        )
+        content = resp.json()["choices"][0]["message"]["content"]
+        m = re.search(r"\{.*\}", content, re.DOTALL)
+        return json.loads(m.group()) if m else {"纪要": content}
+    except Exception:
+        # 确定性降级：关键词命中 → 纪要 + 评级
+        kws = ["倒班", "到岗", "稳定", "沟通", "抗压", "加班", "协作"]
+        hits = [k for k in kws if k in conversation]
+        return {
+            "纪要": f"面试对话提到：{'、'.join(hits) if hits else '信息不足，需补充追问'}",
+            "亮点": hits,
+            "风险": [],
+            "评级": "B" if len(hits) >= 3 else "C",
+        }
+
+
 def write_interview_record(feishu, candidate_name: str, job_name: str, questions: list) -> dict:
     """写飞书「面试记录」表：候选人 + 面试阶段 + 面试记录（生成的题目）。"""
     from config import INTERVIEW_TABLE_ID
