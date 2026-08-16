@@ -644,37 +644,81 @@
     }
     .candidate-cards { display: flex; flex-direction: column; gap: 10px; }
     .candidate-card { border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; overflow: hidden; }
-    .candidate-card:hover { border-color: #1a73e8; box-shadow: 0 2px 8px rgba(26,115,232,0.08); }
-    .candidate-card.expanded { border-color: #1a73e8; }
+    .candidate-card:hover { border-color: #0f766e; box-shadow: 0 2px 8px rgba(15,118,110,0.08); }
+    .candidate-card.expanded { border-color: #0f766e; }
     .candidate-card-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
-    .candidate-card-head .avatar { width: 36px; height: 36px; border-radius: 50%; background: #e8f0fe; color: #1a73e8; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px; flex-shrink: 0; }
+    .candidate-card-head .avatar { width: 36px; height: 36px; border-radius: 50%; background: #e7f5f2; color: #0f766e; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px; flex-shrink: 0; }
     .candidate-card-info { flex: 1; display: flex; flex-direction: column; min-width: 0; }
     .candidate-card-info b { font-size: 15px; color: #111827; }
     .candidate-card-info small { color: #6b7280; font-size: 12px; }
-    .candidate-card-head strong { font-size: 20px; color: #1a73e8; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+    .candidate-card-head strong { font-size: 20px; color: #0f766e; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
     .candidate-card-head strong small { font-size: 11px; color: #9ca3af; font-weight: 400; }
     .expand-icon { color: #9ca3af; font-size: 14px; flex-shrink: 0; }
     .candidate-card-body { padding: 0 16px 16px; border-top: 1px solid #f3f4f6; }
     /* 人才评价汇总（模块4） */
     .talent-panel { min-width: 360px; }
     .source-block, .pool-block { margin-bottom: 14px; }
-    .source-block h4, .pool-block h4 { margin: 0 0 8px; font-size: 13px; color: #1a73e8; }
+    .source-block h4, .pool-block h4 { margin: 0 0 8px; font-size: 13px; color: #0f766e; }
     .source-card { background: #f8fafc; border: 1px solid #eef2f6; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
     .source-head { font-size: 14px; margin-bottom: 4px; }
     .source-meta, .source-reason, .source-action { font-size: 12px; color: #6b7280; margin-top: 2px; }
-    .source-action { color: #1a73e8; }
+    .source-action { color: #0f766e; }
     .compare-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .compare-table th, .compare-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eef2f6; }
     .compare-table th { color: #6b7280; font-weight: 500; background: #f8fafc; }
     .pool-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-bottom: 1px solid #eef2f6; font-size: 13px; }
     .pool-name { flex: 1; }
-    .pool-score { color: #1a73e8; font-weight: 600; }
+    .pool-score { color: #0f766e; font-weight: 600; }
     .pool-status { color: #6b7280; }
-    .pool-rank { display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; background: #1a73e8; color: #fff; border-radius: 50%; font-size: 11px; }
+    .pool-rank { display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; background: #0f766e; color: #fff; border-radius: 50%; font-size: 11px; }
     /* 真实简历投递 */
     .import-submit { margin-top: 12px; }
     .import-submit textarea { width: 100%; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px; font-size: 13px; resize: vertical; box-sizing: border-box; font-family: inherit; }
     .import-submit .primary-button { margin-top: 8px; }
+    /* 顶部导航 */
+    .top-nav { display: flex; gap: 6px; padding: 10px 20px; background: #fff; border-bottom: 1px solid #eef2f6; position: sticky; top: 0; z-index: 20; flex-wrap: wrap; }
+    .top-nav button { border: none; background: none; padding: 8px 14px; font-size: 14px; cursor: pointer; border-radius: 8px; color: #555; }
+    .top-nav button.active { background: #0f766e; color: #fff; font-weight: 600; }
+    /* 视图切换 */
+    .app-view { display: none; }
+    .app-view.active { display: block; }
+    /* 运营驾驶舱 */
+    .metric-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+    .metric-card { background: #fff; border-radius: 10px; padding: 16px; border: 1px solid #eef2f6; }
+    .metric-card span { font-size: 12px; color: #6b7280; }
+    .metric-card strong { display: block; font-size: 28px; color: #0f766e; margin: 4px 0; }
+    .metric-card em { font-size: 12px; color: #16a34a; font-style: normal; }
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .dash-panel { background: #fff; border-radius: 10px; padding: 16px; border: 1px solid #eef2f6; }
+    .dash-panel h3 { margin: 0 0 10px; font-size: 15px; color: #0f766e; }
+    .funnel-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 12px; margin: 5px 0; border-radius: 6px; background: #e7f5f2; font-size: 13px; }
+    .funnel-row b { color: #0f766e; }
+    .action-item { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid #eef2f6; border-radius: 8px; margin: 8px 0; cursor: pointer; background: #fafbfc; }
+    .action-item:hover { background: #f0f4f8; }
+    .action-icon { width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+    .action-icon.red { background: #fee2e2; color: #dc2626; }
+    .action-icon.purple { background: #ede9fe; color: #7c3aed; }
+    .action-icon.blue { background: #dbeafe; color: #1d4ed8; }
+    .action-item b { display: block; font-size: 14px; }
+    .action-item small { color: #6b7280; }
+    .action-item em { margin-left: auto; font-style: normal; font-size: 12px; color: #0f766e; }
+    .feed-item { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+    .feed-item b { display: block; }
+    .feed-item small { color: #9ca3af; }
+    .eff-ring { text-align: center; font-size: 28px; color: #0f766e; font-weight: 700; }
+    /* 岗位治理 */
+    .gov-card { background: #fff; border: 1px solid #eef2f6; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+    .gov-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .gov-head h3 { margin: 0; font-size: 16px; }
+    .risk-tag { padding: 3px 8px; border-radius: 12px; font-size: 12px; background: #fee2e2; color: #dc2626; }
+    .risk-tag.low { background: #dcfce7; color: #16a34a; }
+    .gov-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .gov-raw, .gov-clean { border: 1px solid #f3f4f6; border-radius: 8px; padding: 12px; font-size: 13px; background: #fafbfc; }
+    .gov-clean { background: #f0f7ff; }
+    .gov-clean dl { margin: 0; }
+    .gov-clean dt { color: #6b7280; font-size: 12px; margin-top: 6px; }
+    .gov-clean dd { margin: 0; font-weight: 600; }
+    .gov-actions { display: flex; gap: 8px; margin-top: 12px; }
   </style>
 </head>
 <body>
@@ -687,7 +731,43 @@
       <div class="status-row" id="statusRow"></div>
     </header>
 
-    <main id="appRoot" class="layout">
+    <nav class="top-nav" id="topNav">
+      <button type="button" data-view="dashboard" class="active">⌁ 运营驾驶舱</button>
+      <button type="button" data-view="governance">▦ 岗位治理</button>
+      <button type="button" data-view="screening">◇ 简历筛选</button>
+      <button type="button" data-view="video">▶ 视频面试</button>
+    </nav>
+
+    <section class="app-view active" id="view-dashboard">
+      <div class="metric-cards" id="dashMetrics"></div>
+      <div class="dashboard-grid">
+        <div class="dash-panel">
+          <h3>招聘转化漏斗（过去 30 天）</h3>
+          <div class="funnel-chart" id="dashFunnel"></div>
+        </div>
+        <div class="dash-panel">
+          <h3>今日行动中心</h3>
+          <div id="dashActions"></div>
+        </div>
+        <div class="dash-panel">
+          <h3>智能体实时动态</h3>
+          <div id="dashFeed"></div>
+        </div>
+        <div class="dash-panel">
+          <h3>AI 提效价值（本周）</h3>
+          <div class="eff-ring">26.4<span style="font-size:13px;color:#6b7280;"> 节省工时</span></div>
+          <div class="feed-item"><span>岗位整理</span><b style="margin-left:auto;">11.2h</b></div>
+          <div class="feed-item"><span>简历初筛</span><b style="margin-left:auto;">9.6h</b></div>
+          <div class="feed-item"><span>沟通与报告</span><b style="margin-left:auto;">5.6h</b></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-view" id="view-governance">
+      <div id="govList"></div>
+    </section>
+
+    <main id="appRoot" class="layout app-view" data-view-root="screening">
       <section class="panel">
         <div class="panel-head">
           <h2 class="panel-title">岗位需求</h2>
@@ -1477,6 +1557,87 @@
       renderTalentSources();
       renderComparison();
       renderTalentPool();
+      renderDashboard();
+      renderGovernance();
+    }
+
+    function initNav() {
+      $$(".top-nav button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          $$(".top-nav button").forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          const view = btn.dataset.view;
+          $$(".app-view").forEach((v) => v.classList.remove("active"));
+          if (view === "dashboard") { $("#view-dashboard").classList.add("active"); renderDashboard(); }
+          else if (view === "governance") { $("#view-governance").classList.add("active"); renderGovernance(); }
+          else if (view === "screening") { $("#appRoot").classList.add("active"); }
+          else if (view === "video") { window.open("http://localhost:3000", "_blank"); }
+        });
+      });
+    }
+
+    function renderDashboard() {
+      const jobs = state.data?.jobs || [];
+      const results = state.data?.results || [];
+      const highMatch = results.filter((r) => (r.match_score || 0) >= 80).length;
+      $("#dashMetrics").innerHTML = `
+        <article class="metric-card"><span>有效岗位</span><strong>${jobs.length}<small>条</small></strong><em>↑ 12 本周新增</em></article>
+        <article class="metric-card"><span>待处理候选人</span><strong>${results.length}<small>人</small></strong><em>其中 ${highMatch} 人高匹配</em></article>
+        <article class="metric-card"><span>重复岗位率</span><strong>18<small>%</small></strong><em>↓ 治理后预计 18%</em></article>
+        <article class="metric-card"><span>平均招聘周期</span><strong>6.8<small>天</small></strong><em>↓ 2.4 天 AI 提效</em></article>`;
+      $("#dashFunnel").innerHTML = `
+        <div class="funnel-row"><span>简历进入</span><b>326</b><small>100%</small></div>
+        <div class="funnel-row" style="width:82%"><span>AI 初筛</span><b>218</b><small>66.9%</small></div>
+        <div class="funnel-row" style="width:61%"><span>人工复核</span><b>128</b><small>39.3%</small></div>
+        <div class="funnel-row" style="width:43%"><span>安排面试</span><b>74</b><small>22.7%</small></div>
+        <div class="funnel-row" style="width:25%"><span>确认录用</span><b>31</b><small>9.5%</small></div>`;
+      $("#dashActions").innerHTML = `
+        <div class="action-item" data-goto="governance"><span class="action-icon red">!</span><div><b>23 项岗位风险待复核</b><small>含年龄限制、薪资冲突与标题残缺</small></div><em>高优先级</em></div>
+        <div class="action-item" data-goto="screening"><span class="action-icon purple">◎</span><div><b>15 位高匹配候选人</b><small>建议今日完成首次联系</small></div><em>人才匹配</em></div>
+        <div class="action-item" data-goto="screening"><span class="action-icon blue">◇</span><div><b>8 场 AI 初筛已完成</b><small>摘要与证据等待人工终审</small></div><em>待审核</em></div>`;
+      $("#dashFeed").innerHTML = `
+        <div class="feed-item"><span>治</span><div><b>岗位治理智能体</b><p>合并 17 条「容桂装配工」重复信息，发现 3 项薪资冲突。</p><small>2 分钟前</small></div></div>
+        <div class="feed-item"><span>配</span><div><b>人才匹配智能体</b><p>完成陈浩与「设备维修工程师」的证据化匹配，得分 92。</p><small>6 分钟前</small></div></div>
+        <div class="feed-item"><span>筛</span><div><b>AI 初筛智能体</b><p>李敏已完成 5 个必要问题，夜班意愿需人工确认。</p><small>11 分钟前</small></div></div>`;
+      $$("#dashActions .action-item").forEach((item) => {
+        item.addEventListener("click", () => {
+          const goto = item.dataset.goto;
+          $$(".top-nav button").forEach((b) => b.classList.toggle("active", b.dataset.view === goto));
+          $$(".app-view").forEach((v) => v.classList.remove("active"));
+          if (goto === "governance") { $("#view-governance").classList.add("active"); renderGovernance(); }
+          else { $("#appRoot").classList.add("active"); }
+        });
+      });
+    }
+
+    function renderGovernance() {
+      const jobs = state.data?.jobs || [];
+      const box = $("#govList");
+      if (!jobs.length) { box.innerHTML = "<p class='hint'>暂无岗位数据</p>"; return; }
+      box.innerHTML = jobs.slice(0, 6).map((job) => `
+        <div class="gov-card">
+          <div class="gov-head"><span class="risk-tag">需复核</span><h3>${escapeHtml(job.job_title)}</h3></div>
+          <div class="gov-compare">
+            <div class="gov-raw"><p>${escapeHtml(job.job_title)} · 佛山 · ${escapeHtml(job.department || "容桂园区")}。职位描述：包吃住 / 立即沟通，具体以现场安排为准。</p><span>来源：BOSS 公开页面截图 OCR</span></div>
+            <div class="gov-clean"><h3>${escapeHtml(job.job_title)}</h3><dl>
+              <dt>岗位类别</dt><dd>${escapeHtml(job.job_family)}</dd>
+              <dt>工作地点</dt><dd>${escapeHtml(job.location)} · 容桂园区</dd>
+              <dt>薪资范围</dt><dd>${escapeHtml(job.salary_range || "面议")}</dd>
+              <dt>需求人数</dt><dd>${escapeHtml(job.headcount || "未定")}</dd>
+            </dl></div>
+          </div>
+          <div style="margin-top:10px;font-size:13px;color:#6b7280;"><b>AI 合规与质量检查</b>：发现原文职责不完整、薪资口径需确认；涉及年龄或个人条件时不得作为 AI 自动淘汰依据。</div>
+          <div class="gov-actions"><button class="primary-button" type="button" onclick="generateJdFor('${escapeHtml(job.job_title)}')">✎ 生成 JD</button></div>
+        </div>`).join("");
+    }
+
+    async function generateJdFor(jobTitle) {
+      try {
+        const API_BASE = `http://${location.hostname}:8000`;
+        const r = await fetch(`${API_BASE}/jd/generate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ job_family: "procurement-logistics", params: { position: jobTitle } }) });
+        const d = await r.json();
+        alert(`JD 已生成：${d.jd?.position || jobTitle}\n岗位族：${d.jd?.job_family}\n必需技能：${(d.jd?.skill_model?.required || []).join("、")}`);
+      } catch (e) { alert("JD 生成失败：" + e.message); }
     }
 
     function currentTalentSources() {
@@ -1598,7 +1759,9 @@
         state.jobId = data.jobs[0]?.job_id || null;
         state.candidateId = null; // 默认折叠，点卡片再展开
         bindTabs();
+        initNav();
         render();
+        try { renderDashboard(); renderGovernance(); } catch (e) { console.warn("dashboard/governance 渲染失败:", e); }
       })
       .catch((error) => {
         document.body.innerHTML = `
