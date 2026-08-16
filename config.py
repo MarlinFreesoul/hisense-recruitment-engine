@@ -35,6 +35,8 @@ RESULT_TABLE_ID = os.getenv("RESULT_TABLE_ID", "tblqA6EPmKoM7Ei3")  # 评分结�
 WEIGHT_TABLE_ID = os.getenv("WEIGHT_TABLE_ID", "tblfY4SisSRMlXrc")  # 权重配置表
 INTERVIEW_TABLE_ID = os.getenv("INTERVIEW_TABLE_ID", "tblbFeWzLARIFqL8")  # 面试记录表
 PROGRESS_TABLE_ID = os.getenv("PROGRESS_TABLE_ID", "tbl7llDoJwAZu3fP")    # 招聘进度管理表
+INTERNAL_TALENT_TABLE_ID = os.getenv("INTERNAL_TALENT_TABLE_ID", "tblfvT5JW1h16YqX")  # 内部人才库
+HISTORICAL_TALENT_TABLE_ID = os.getenv("HISTORICAL_TALENT_TABLE_ID", "tblAYhymiftIWLsw")  # 历史候选人库
 INTERVIEW_COLLECT_TABLE_ID = os.getenv("INTERVIEW_COLLECT_TABLE_ID", "tblhzLcVQeJCgHWP")  # 面试采集表
 
 # ============ LLM（DeepSeek） ============

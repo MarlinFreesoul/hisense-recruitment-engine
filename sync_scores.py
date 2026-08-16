@@ -100,6 +100,21 @@ def _interview_text(resume: dict, family_key: str, score: dict) -> tuple[str, li
     return "\n".join(lines), groups
 
 
+def _interview_grade(score) -> str:
+    """面试评级：从筛选分推导（demo 用筛选分做面试分代理）。A≥85/B≥75/C≥60/备选≥45/暂缓<45。"""
+    if score is None:
+        return "暂缓"
+    if score >= 85:
+        return "A"
+    if score >= 75:
+        return "B"
+    if score >= 60:
+        return "C"
+    if score >= 45:
+        return "备选"
+    return "暂缓"
+
+
 # 各维度评分规则（对齐 scoring.py，写进「权重配置表.评分规则」供 HR 查看）
 DIMENSION_RULES = {
     "到岗工期": "随时/立即=10，1周=9，2周=8，1个月=8，更晚=3，未填=未知",
@@ -166,7 +181,7 @@ def build_all_rows():
             "多行文本": _dimension_text(score),
         })
 
-        # 推荐候选人 → 生成结构化面试题写进「面试记录表」
+        # 推荐候选人 → 生成结构化面试题 + 面试后评分写进「面试记录表」
         if score["screening_status"] == "推荐":
             text, groups = _interview_text(resume, family_key, score)
             interview_rows.append({
@@ -174,6 +189,9 @@ def build_all_rows():
                 "面试阶段": "待面试",
                 "面试记录": text,
                 "问题分组": "、".join(groups),
+                "面试总分": score["match_score"] if score["match_score"] is not None else 0,
+                "面试评级": _interview_grade(score["match_score"]),
+                "面试评分明细": _dimension_text(score),
                 "面试评价": "",
                 "面试结果": "",
             })

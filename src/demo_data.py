@@ -13,7 +13,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from matcher_v2 import FeishuClient, feishu_to_resume, score_feishu_resume, match_job_family
 from jd_generator import load_family
 from interview_collect import generate_core_questions
-from config import JD_TABLE_ID, RESUME_TABLE_ID
+from config import JD_TABLE_ID, RESUME_TABLE_ID, INTERNAL_TALENT_TABLE_ID, HISTORICAL_TALENT_TABLE_ID
 
 # 面试题的期望信号/风险信号（按维度动态生成，不再写死）
 QUESTION_SIGNALS = {
@@ -26,6 +26,106 @@ QUESTION_SIGNALS = {
     "抗压": ("举例说明抗压经历", "回避压力场景"),
     "团队协作": ("举例说明协作经历", "空泛无实例"),
 }
+
+
+# ============ 模块4：人才评价汇总 ============
+def _talent_internal_item(fields):
+    return {
+        "name": fields.get("姓名", ""),
+        "current_role": fields.get("当前岗位", ""),
+        "department": fields.get("部门", ""),
+        "skills": fields.get("技能", ""),
+        "availability": fields.get("可到岗", ""),
+        "match_score": int(float(fields.get("匹配度") or 0)),
+        "reason": fields.get("推荐理由", ""),
+        "risk": fields.get("风险", ""),
+        "action": fields.get("动作", ""),
+    }
+
+
+def _talent_historical_item(fields):
+    return {
+        "name": fields.get("姓名", ""),
+        "previous_job": fields.get("曾应聘岗位", ""),
+        "interview_result": fields.get("面试结果", ""),
+        "offer_status": fields.get("offer状态", ""),
+        "no_show_reason": fields.get("未到岗原因", ""),
+        "skills": fields.get("技能", ""),
+        "match_score": int(float(fields.get("匹配度") or 0)),
+        "reason": fields.get("理由", ""),
+        "risk": fields.get("风险", ""),
+        "action": fields.get("动作", ""),
+    }
+
+
+def build_talent_sources(feishu, jobs):
+    """人才来源优先级：内部人才库 → 历史候选人 → 外招（每岗位取 top3）。"""
+    internal = feishu.get_records(INTERNAL_TALENT_TABLE_ID)
+    historical = feishu.get_records(HISTORICAL_TALENT_TABLE_ID)
+    result = []
+    for job in jobs:
+        title = job["job_title"]
+        int_matches = [r["fields"] for r in internal if title in (r["fields"].get("可调岗岗位", "") or "")]
+        int_matches.sort(key=lambda f: -float(f.get("匹配度") or 0))
+        hist_matches = [r["fields"] for r in historical if title in (r["fields"].get("目标岗位", "") or "")]
+        hist_matches.sort(key=lambda f: -float(f.get("匹配度") or 0))
+        result.append({
+            "job_id": job["job_id"],
+            "job_title": title,
+            "internal": [_talent_internal_item(f) for f in int_matches[:3]],
+            "historical": [_talent_historical_item(f) for f in hist_matches[:3]],
+            "external_count": 0,  # 由 build_demo_data 回填外招简历数
+        })
+    return result
+
+
+def build_comparisons(screening_results, jobs):
+    """候选人对比：每岗位 top（推荐）与 backup（待确认），对比维度对齐 V2。"""
+    result = []
+    for job in jobs:
+        jr = [s for s in screening_results if s["target_job_id"] == job["job_id"]]
+        top = [s for s in jr if s["screening_status"] == "推荐"]
+        backup = [s for s in jr if s["screening_status"] == "待确认"]
+        def _cmp_item(s):
+            return {
+                "candidate_name": s.get("candidate_id", ""),
+                "match_score": s.get("match_score", 0),
+                "screening_status": s.get("screening_status", ""),
+                "risk_warnings": [r.get("risk_type", "") for r in s.get("risk_warnings", [])],
+                "dimension_scores": s.get("dimension_scores", []),
+            }
+        result.append({
+            "job_id": job["job_id"],
+            "job_title": job["job_title"],
+            "comparison_dimensions": ["综合匹配分", "岗位核心经验", "风险核验点", "到岗/稳定性", "面试重点"],
+            "top_candidates": [_cmp_item(s) for s in top[:5]],
+            "backup_candidates": [_cmp_item(s) for s in backup[:5]],
+        })
+    return result
+
+
+def build_talent_pool(screening_results, jobs):
+    """入库 + offer 递补：合格集（推荐+待确认）按分数排序，排除 offer 放弃者后给出递补顺序。"""
+    result = []
+    for job in jobs:
+        jr = [s for s in screening_results if s["target_job_id"] == job["job_id"]]
+        qualified = [s for s in jr if s["screening_status"] in ("推荐", "待确认")]
+        qualified.sort(key=lambda s: -(s.get("match_score") or 0))
+        def _pool_item(s):
+            return {
+                "candidate_name": s.get("candidate_id", ""),
+                "match_score": s.get("match_score", 0),
+                "screening_status": s.get("screening_status", ""),
+                "decision_summary": s.get("decision_summary", ""),
+                "risk_warnings": [r.get("risk_type", "") for r in s.get("risk_warnings", [])],
+            }
+        result.append({
+            "job_id": job["job_id"],
+            "job_title": job["job_title"],
+            "qualified": [_pool_item(s) for s in qualified],
+            "replacement_order": [_pool_item(s) for s in qualified[1:6]],  # 模拟 offer 放弃首名后递补
+        })
+    return result
 
 
 def _job_to_demo(jd_record, index, family):
@@ -187,12 +287,23 @@ def build_demo_data():
         {"metric": "不推荐", "value": reject},
     ]
 
+    # 模块4：人才评价汇总（人才来源优先级 / 候选人对比 / 入库 + offer 递补）
+    talent_sources = build_talent_sources(feishu, jobs)
+    for ts in talent_sources:
+        # 回填外招简历数（该岗位应聘的简历数）
+        ts["external_count"] = sum(1 for r in resume_records if r["fields"].get("应聘岗位") == ts["job_title"])
+    comparisons = build_comparisons(screening_results, jobs)
+    talent_pool = build_talent_pool(screening_results, jobs)
+
     return {
         "jobs": jobs,
         "resume_pool": resume_pool,
         "screening_results": screening_results,
         "interview_questions": interview_questions,
         "summary": summary,
+        "talent_sources": talent_sources,
+        "candidate_comparisons": comparisons,
+        "talent_pool": talent_pool,
     }
 
 

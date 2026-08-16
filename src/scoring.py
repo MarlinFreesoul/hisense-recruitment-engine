@@ -190,6 +190,33 @@ def score_skills(resume: dict, family: dict = None):
     return (SATISFIED if s >= 6 else UNSATISFIED), min(10, s), ev
 
 
+def score_education(resume: dict, family: dict = None):
+    """学历：软条件打分（不是一票否决）。本科>大专>中专>高中>初中，大专+对口经验可补偿。
+    对齐真实招聘共识「学历不足，经验来补」——差一个级别可接受。返回 (state, raw, evidence)。"""
+    degree = (resume.get("education", {}).get("degree", "") or "").strip()
+    if not degree or degree == "学历不限":
+        return UNKNOWN, 5, "学历未填写"
+    # 学历分档（本科与大专分数必须不同，不能一样）
+    edu_scores = {"博士": 10, "硕士": 9, "本科": 8, "大专": 5,
+                  "中专/中技": 3, "高中": 3, "初中及以下": 1}
+    base = edu_scores.get(degree, 5)  # 未识别学历 → 中性5
+    # 经验补偿：大专及以下 + 对口经验 ≥3 年 → +2，上限不超过本科 8 分
+    work = resume.get("work_experience", []) or []
+    total = _total_years(work)
+    matched = any(
+        any(k in ((w.get("position", "") or "") + (w.get("company", "") or ""))
+            for k in ["采购", "物流", "供应链", "仓储", "计划", "精益",
+                      "装配", "制造", "家电", "生产", "工艺", "质量", "冰箱"])
+        for w in work
+    )
+    compensated = False
+    if base < 8 and matched and total >= 3:
+        base = min(8, base + 2)
+        compensated = True
+    ev = f"学历{degree}（{base}分" + ("，对口经验补偿+2" if compensated else "") + "）"
+    return (SATISFIED if base >= 7 else UNSATISFIED), base, ev
+
+
 def load_major_mapping() -> dict:
     import pathlib
     base = pathlib.Path(__file__).resolve().parent.parent

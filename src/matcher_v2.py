@@ -22,7 +22,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from scoring import (score_stability, score_soft_qualities, score_experience,
                      score_skills, score_major_match, score_arrival, score_shift,
                      score_data_tools, score_process, score_communication,
-                     EDU_LEVELS, UNKNOWN, SATISFIED, UNSATISFIED)
+                     score_education, UNKNOWN, SATISFIED, UNSATISFIED)
 from jd_generator import load_family
 from risk_filter import risk_report
 from interview import generate_questions, format_questions_text
@@ -214,16 +214,15 @@ def _missing(fields: dict) -> list[str]:
 
 
 # ============== 评分 + 风险 ==============
-def _screening_status(score, edu_pass):
+def _screening_status(score):
     """对齐陈老师推荐等级：90-100立即约面 / 80-89电话确认 / 75-79备选 / 45-74待确认 / 0-44不推荐。
 
     三分类映射（对齐 10% 推荐 / 30% 待确认 / 60% 不推荐）：
       推荐 = 90-100 + 80-89（明确推荐，约面）
       待确认 = 75-79（备选）+ 45-74（待确认）
       不推荐 = 0-44
+    一票否决（意向不符/不接受倒班）已在上游扣分处理，不在此处用学历硬门槛。
     """
-    if not edu_pass:
-        return "不推荐", "暂不推进"
     if score is None:
         return "待确认", "电话确认"
     if score >= 90:
@@ -244,16 +243,6 @@ RISK_VERIFY_QUESTIONS = {
 
 
 def score_feishu_resume(resume: dict, family: dict) -> dict:
-    degree = resume["education"]["degree"]
-    need = 0
-    edu_rule = "不限"
-    for f in family.get("hard_filters", []):
-        if f["dim"] == "学历":
-            edu_rule = f.get("rule", "不限")
-            need = EDU_LEVELS.get(edu_rule, 0)
-            break
-    edu_pass = EDU_LEVELS.get(degree, 0) >= need
-
     dimension_scores = []
     recommend_reasons = []
     pending_reasons = []
@@ -264,7 +253,7 @@ def score_feishu_resume(resume: dict, family: dict) -> dict:
         key, w = dim["dim"], dim.get("weight", 0.0)
         fn = {"稳定性": score_stability, "软实力": score_soft_qualities,
               "经验": score_experience, "技能": score_skills,
-              "专业对口": score_major_match,
+              "专业对口": score_major_match, "学历": score_education,
               "到岗工期": score_arrival, "倒班接受": score_shift,
               "制造业经验": score_experience, "现场适配": score_process,
               "专业经验": score_major_match, "沟通协同": score_communication,
@@ -310,10 +299,7 @@ def score_feishu_resume(resume: dict, family: dict) -> dict:
         for r in risk["risks"] if r["level"] != "低"
     ]
 
-    status, next_action = _screening_status(score_100, edu_pass)
-    # 学历硬条件不通过 → 把原因写进淘汰原因，避免「不推荐却只显示推荐理由」的矛盾
-    if not edu_pass:
-        reject_reasons.insert(0, f"学历{degree}不满足{edu_rule}要求")
+    status, next_action = _screening_status(score_100)
     # 求职意向错位（一票否决）→ 写进淘汰原因
     if reject:
         reject_reasons.insert(0, "求职意向与岗位不符")
@@ -341,10 +327,10 @@ def score_feishu_resume(resume: dict, family: dict) -> dict:
         "dimension_scores": dimension_scores,
         "risk_warnings": risk_warnings,
         # 兼容旧字段
-        "硬性通过": edu_pass,
+        "硬性通过": not reject,  # 真硬条件：无求职意向错位即通过（学历已改软打分）
         "软条件明细": dimension_scores,
         "匹配度": score_100,
-        "等级": _grade(score_100, edu_pass),
+        "等级": _grade(score_100),
         "信息覆盖度": coverage,
         "风险等级": risk["overall_level"],
         "风险点": [r for r in risk["risks"] if r["level"] != "低"],
@@ -352,10 +338,9 @@ def score_feishu_resume(resume: dict, family: dict) -> dict:
     }
 
 
-def _grade(score, hard_pass: bool) -> str:
+def _grade(score) -> str:
     """匹配度分级（对照 PRD 学术标准）：81-100 完全匹配 A级 / 61-80 基本匹配 B级 /
     21-60 相当匹配或不匹配 C级 / <21 非常不匹配 不推荐。"""
-    if not hard_pass: return "不推荐"
     if score is None: return "信息不足"
     if score >= 81: return "A级"
     if score >= 61: return "B级"
