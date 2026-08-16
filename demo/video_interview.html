@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>视频面试 · 海信 AI 招聘智能体</title>
+  <style>
+    :root { --bg:#f4f6f8; --panel:#fff; --panel-soft:#f8fafc; --text:#172033; --muted:#64748b; --line:#d8dee8; --accent:#0f766e; --accent-soft:#e7f5f2; --red:#b91c1c; --green:#15803d; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif; background:var(--bg); color:var(--text); }
+    .wrap { max-width:1100px; margin:0 auto; padding:20px; }
+    h1 { font-size:22px; margin:0 0 6px; }
+    .sub { color:var(--muted); font-size:13px; margin-bottom:18px; }
+    .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:14px; box-shadow:0 4px 16px rgba(15,23,42,.05); }
+    .row { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
+    .field { display:flex; flex-direction:column; gap:4px; min-width:160px; flex:1; }
+    .field label { font-size:12px; color:var(--muted); }
+    input, select { border:1px solid var(--line); border-radius:8px; padding:9px 11px; font-size:14px; }
+    .seg { display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+    .seg button { border:none; background:#fff; padding:9px 18px; font-size:13px; cursor:pointer; }
+    .seg button.active { background:var(--accent); color:#fff; }
+    .btn { border:none; border-radius:8px; padding:10px 16px; font-size:14px; cursor:pointer; }
+    .btn-primary { background:var(--accent); color:#fff; }
+    .btn-danger { background:var(--red); color:#fff; }
+    .btn:disabled { opacity:.5; cursor:default; }
+    .error { background:#fdecec; border:1px solid #f3c2c2; color:#c0392b; padding:10px 12px; border-radius:8px; font-size:13px; margin-bottom:12px; }
+    .ok { color:var(--green); font-size:13px; }
+    .warn { color:var(--red); font-size:13px; }
+    .videos { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .videos video { width:100%; aspect-ratio:4/3; background:#000; border-radius:8px; object-fit:cover; }
+    .videos h3 { margin:0 0 8px; font-size:14px; }
+    .transcript { height:140px; overflow-y:auto; white-space:pre-wrap; background:#fafbfc; border:1px solid var(--line); border-radius:8px; padding:10px; font-size:13px; line-height:1.6; }
+    .assist div { font-size:13px; line-height:1.6; margin:6px 0; }
+    .status { white-space:pre-wrap; color:var(--muted); font-size:13px; line-height:1.6; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .badge { display:inline-block; background:var(--accent-soft); color:var(--accent); padding:4px 10px; border-radius:999px; font-size:13px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>视频面试（端到端闭环）</h1>
+    <p class="sub">独立 TRTC 音视频 + 独立 ASR 实时转写 + HR 实时辅助 + 云端录制 → 文件识别 → 评分 → 回写飞书。</p>
+
+    <div id="errorBox"></div>
+
+    <div class="panel">
+      <div class="row">
+        <div class="field" style="max-width:220px;">
+          <label>我的角色</label>
+          <div class="seg" id="roleSeg">
+            <button type="button" data-role="hr" class="active">面试官（HR）</button>
+            <button type="button" data-role="candidate">候选人</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>候选人 ID（飞书简历库 record_id）</label>
+          <input id="candidateId" placeholder="如：rec_xxxxxxxx">
+        </div>
+        <div class="field" style="max-width:200px;">
+          <label>岗位族</label>
+          <select id="familyKey">
+            <option value="firstline">一线生产</option>
+            <option value="process-equipment">工艺 / 设备</option>
+            <option value="quality">质量 / 检验</option>
+            <option value="procurement-logistics">采购 / 物流</option>
+            <option value="production-management">现场管理</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="eligBox" style="margin-top:10px;"></div>
+      <div id="registerBox" style="margin-top:10px; display:none;">
+        <div class="panel" style="margin:0;">
+          <p style="font-size:13px; margin:0 0 8px; font-weight:600;">候选人资料登记（填完即生成唯一候选人ID并具备面试资格）</p>
+          <div class="row">
+            <div class="field"><label>姓名</label><input id="fName" placeholder="如：张三"></div>
+            <div class="field"><label>最近职位</label><input id="fPosition" placeholder="如：设备维修工程师"></div>
+            <div class="field"><label>最近公司</label><input id="fCompany" placeholder="如：某制造企业"></div>
+            <div class="field"><label>工作年限</label><input id="fYears" placeholder="如：5"></div>
+          </div>
+          <button class="btn btn-primary" id="registerBtn" style="margin-top:10px;">提交登记</button>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:12px;">
+        <button class="btn btn-primary" id="startBtn">开始面试</button>
+        <button class="btn btn-danger" id="stopBtn" disabled>结束并生成评价</button>
+        <div id="inviteBox" style="flex:1; min-width:280px;"></div>
+      </div>
+    </div>
+
+    <div class="panel videos">
+      <div><h3>本地画面（你）</h3><video id="localVideo" autoplay playsinline muted></video></div>
+      <div><h3>远端画面</h3><video id="remoteVideo" autoplay playsinline></video></div>
+    </div>
+
+    <div class="panel">
+      <h3 style="margin:0 0 8px; font-size:14px;">实时辅助（AI · DeepSeek）</h3>
+      <div class="assist" id="assistBox"><span style="color:var(--muted); font-size:13px;">面试进行中，将基于实时转写给出建议追问 / 风险预警 / STAR 提示。</span></div>
+    </div>
+
+    <div class="panel">
+      <h3 style="margin:0 0 8px; font-size:14px;">实时转写（独立 ASR）</h3>
+      <div class="transcript" id="transcript">点击「开始面试 / 进入面试间」后，麦克风音频会实时推到腾讯云 ASR，转写显示在此。</div>
+    </div>
+
+    <div class="panel" id="evalBox" style="display:none;">
+      <h3 style="margin:0 0 8px; font-size:14px;">面试评价（自动识别 → 评分 → 回写飞书）</h3>
+      <div id="evalContent"></div>
+    </div>
+
+    <div class="panel">
+      <h3 style="margin:0 0 8px; font-size:14px;">流程状态</h3>
+      <div class="status" id="status">就绪。HR 点击「开始面试」、候选人点击「进入面试间」启动闭环。</div>
+    </div>
+  </div>
+
+<script>
+const API_BASE = `http://${location.hostname}:8000`;
+const REQUIRED_FIELDS = [["姓名","姓名"],["最近职位","最近职位"],["最近公司","最近公司"],["工作年限","工作年限"]];
+
+// 状态
+let role = "hr";
+let candidateId = "";
+let familyKey = "firstline";
+let eligible = null, eligMissing = [], profileName = "";
+let joined = false, busy = false;
+let trtc = null, ws = null, stream = null, audioCtx = null;
+let seq = 0, taskId = null, roomId = null, candUid = "", hrUid = "hr_hr";
+let transcriptText = "", assistSent = "", assistTimer = null;
+
+const $ = (s) => document.querySelector(s);
+const setStatus = (t) => { $("#status").textContent = t; };
+const setError = (t) => { $("#errorBox").innerHTML = t ? `<div class="error">${t}</div>` : ""; };
+
+// URL 参数解析
+const sp = new URLSearchParams(location.search);
+if (sp.get("candidate")) candidateId = sp.get("candidate");
+if (sp.get("role") === "hr" || sp.get("role") === "candidate") role = sp.get("role");
+$("#candidateId").value = candidateId;
+
+// 角色切换
+$("#roleSeg").querySelectorAll("button").forEach((b) => {
+  b.addEventListener("click", () => {
+    $("#roleSeg").querySelectorAll("button").forEach((x) => x.classList.remove("active"));
+    b.classList.add("active");
+    role = b.dataset.role;
+    updateRoleUI();
+    if (role === "candidate" && candidateId) checkEligibility(candidateId);
+  });
+});
+
+function updateRoleUI() {
+  $("#startBtn").textContent = role === "hr" ? "开始面试" : "进入面试间";
+  $("#stopBtn").textContent = role === "hr" ? "结束并生成评价" : "退出面试间";
+}
+
+// 动态加载 TRTC
+let trtcPromise = null;
+function loadTrtc() {
+  if (window.TRTC) return Promise.resolve(window.TRTC);
+  if (trtcPromise) return trtcPromise;
+  trtcPromise = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://web.sdk.qcloud.com/trtc/webrtc/v5/trtc.js";
+    s.async = true;
+    s.onload = () => (window.TRTC ? resolve(window.TRTC) : reject(new Error("TRTC 全局对象缺失")));
+    s.onerror = () => reject(new Error("TRTC SDK 加载失败"));
+    document.head.appendChild(s);
+  });
+  return trtcPromise;
+}
+
+// 候选人 ID 输入 → 校验资格
+$("#candidateId").addEventListener("change", () => {
+  candidateId = $("#candidateId").value.trim();
+  if (role === "candidate") checkEligibility(candidateId);
+});
+
+async function checkEligibility(id) {
+  if (!id) { eligible = null; renderElig(); return; }
+  try {
+    const r = await fetch(`${API_BASE}/video/candidate/${encodeURIComponent(id)}`).then((x) => x.json());
+    if (r.success && r.exists) {
+      eligible = !!r.eligible; eligMissing = r.missing || []; profileName = r.name || "";
+      $("#registerBox").style.display = r.eligible ? "none" : "block";
+    } else {
+      eligible = false; eligMissing = REQUIRED_FIELDS.map((f) => f[0]);
+      $("#registerBox").style.display = "block";
+    }
+  } catch (e) { eligible = false; eligMissing = REQUIRED_FIELDS.map((f) => f[0]); $("#registerBox").style.display = "block"; }
+  renderElig();
+}
+
+function renderElig() {
+  const box = $("#eligBox");
+  if (eligible === null) { box.innerHTML = '<span style="color:var(--muted);font-size:13px;">输入候选人ID后自动校验面试资格…</span>'; return; }
+  if (eligible) { box.innerHTML = `<span class="ok">✓ 资料完整，具备视频面试资格（${profileName || candidateId}）。</span>`; return; }
+  box.innerHTML = `<span class="warn">✗ 尚未具备面试资格：资料未填写完整（缺 ${eligMissing.join("、") || "必填项"}）。请先完成下方登记。</span>`;
+}
+
+// 资料登记
+$("#registerBtn").addEventListener("click", async () => {
+  const fields = { 姓名: $("#fName").value.trim(), 最近职位: $("#fPosition").value.trim(), 最近公司: $("#fCompany").value.trim(), 工作年限: $("#fYears").value.trim() };
+  $("#registerBtn").disabled = true; $("#registerBtn").textContent = "提交中…";
+  try {
+    const r = await fetch(`${API_BASE}/video/candidate/register`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ record_id: candidateId, fields }) }).then((x) => x.json());
+    if (r.success && r.candidate_id) {
+      candidateId = r.candidate_id; $("#candidateId").value = r.candidate_id;
+      eligible = !!r.eligible; eligMissing = r.missing || []; profileName = fields["姓名"];
+      $("#registerBox").style.display = r.eligible ? "none" : "block";
+      setStatus(`资料已登记，候选人ID=${r.candidate_id}${r.eligible ? "，具备面试资格。" : "（资料仍需补充）"}`);
+      const u = new URL(location.href); u.searchParams.set("candidate", r.candidate_id); history.replaceState({}, "", u.toString());
+      renderElig();
+    } else { setError("登记失败：" + (r.error || "未知错误")); }
+  } catch (e) { setError("登记异常：" + e.message); }
+  $("#registerBtn").disabled = false; $("#registerBtn").textContent = "提交登记";
+});
+
+// 实时 ASR WebSocket（推 PCM）
+function connectASR(wsUrl, mediaStream) {
+  ws = new WebSocket(wsUrl);
+  ws.onopen = () => {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AC();
+    const src = audioCtx.createMediaStreamSource(mediaStream);
+    const proc = audioCtx.createScriptProcessor(4096, 1, 1);
+    proc.onaudioprocess = (e) => {
+      if (ws.readyState !== WebSocket.OPEN) return;
+      const samples = e.inputBuffer.getChannelData(0);
+      const pcm = new Int16Array(samples.length);
+      for (let i = 0; i < samples.length; i++) pcm[i] = Math.max(-1, Math.min(1, samples[i])) * 0x7fff;
+      const header = new ArrayBuffer(4);
+      const dv = new DataView(header);
+      dv.setUint16(0, ++seq, false); dv.setUint8(2, 0); dv.setUint8(3, 0);
+      const frame = new Uint8Array(4 + pcm.byteLength);
+      frame.set(new Uint8Array(header), 0); frame.set(new Uint8Array(pcm.buffer), 4);
+      ws.send(frame);
+    };
+    src.connect(proc); proc.connect(audioCtx.destination);
+  };
+  ws.onmessage = (ev) => {
+    try {
+      const msg = JSON.parse(ev.data);
+      if (msg.result) { transcriptText += (msg.final ? "\n" : "") + msg.result; $("#transcript").textContent = transcriptText; }
+    } catch {}
+  };
+  ws.onerror = () => console.warn("ASR WebSocket 错误");
+}
+
+// 实时辅助
+async function callAssist() {
+  const text = transcriptText.trim();
+  if (!text || text === assistSent) return;
+  assistSent = text;
+  try {
+    const r = await fetch(`${API_BASE}/video/assist`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ transcript: text, family_key: familyKey }) }).then((x) => x.json());
+    if (r.success && r.assist) {
+      $("#assistBox").innerHTML = `
+        <div><b style="color:var(--accent);">建议追问</b><br>${r.assist["建议追问"] || "-"}</div>
+        <div><b style="color:var(--red);">风险预警</b><br>${r.assist["风险预警"] || "-"}</div>
+        <div><b style="color:var(--green);">STAR 提示</b><br>${r.assist["STAR提示"] || "-"}</div>`;
+    }
+  } catch {}
+}
+
+// 进入房间
+async function enterRoom(room) {
+  const TRTC = await loadTrtc();
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true }); }
+  catch (e) { setError("无法获取摄像头/麦克风：" + e); throw e; }
+  $("#localVideo").srcObject = stream;
+  trtc = TRTC.create();
+  trtc.on("track", (evt) => { if (evt.streamType === "main") $("#remoteVideo").srcObject = evt.stream; });
+  const me = role === "hr" ? room.interviewer : room.candidate;
+  await trtc.enterRoom({ sdkAppId: room.sdk_app_id, userId: me.user_id, userSig: me.user_sig, roomId: room.room_id });
+  await trtc.startLocalVideo({ view: $("#localVideo") });
+  await trtc.startLocalAudio();
+}
+
+// 开始
+$("#startBtn").addEventListener("click", async () => {
+  if (!candidateId.trim()) { setError("请先填写候选人ID（飞书简历库 record_id）。"); return; }
+  setError(""); busy = true; $("#startBtn").disabled = true;
+  setStatus("① 正在创建房间 + 签 ASR 连接串…");
+  try {
+    const room = await fetch(`${API_BASE}/video/room`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ candidate: candidateId.trim(), interviewer: "hr", room_id: null }) }).then((x) => x.json());
+    if (!room.success) { setError("房间创建失败：" + (room.error || room.reason || "未知") + (room.missing?.length ? `（缺：${room.missing.join("、")}）` : "")); return; }
+    candUid = room.candidate.user_id; hrUid = room.interviewer.user_id; roomId = room.room_id ?? null;
+    eligible = true; renderElig();
+
+    const asr = await fetch(`${API_BASE}/video/asr?voice_id=${encodeURIComponent(role + "_" + room.room_id)}`).then((x) => x.json());
+    if (!asr.success) { setError("ASR 初始化失败：" + (asr.error || "未知")); return; }
+
+    await enterRoom(room);
+    joined = true; $("#stopBtn").disabled = false;
+    $("#startBtn").textContent = "已入会";
+
+    if (role === "hr") {
+      try {
+        const rec = await fetch(`${API_BASE}/video/recording/start`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ room_id: room.room_id, candidate: candidateId.trim() }) }).then((x) => x.json());
+        if (rec.success) { taskId = rec.task_id || null; setStatus(`① 房间就绪。② 云端录制已启动（task_id=${taskId}）。③ 实时转写/辅助进行中…`); }
+        else setStatus(`① 房间就绪。⚠ 云端录制未启动：${rec.error || ""}（结束将用本地转写兜底回写飞书）`);
+      } catch (e) { setStatus(`① 房间就绪。⚠ 云端录制调用异常（结束将用本地转写兜底回写飞书）`); }
+      assistTimer = setInterval(callAssist, 8000);
+      const u = new URL(location.href); u.searchParams.set("candidate", candidateId.trim()); u.searchParams.set("role", "candidate");
+      $("#inviteBox").innerHTML = `<input readonly value="${u}" style="flex:1;min-width:260px;border:1px solid var(--line);border-radius:8px;padding:8px;font-size:12px;"> <button class="btn" id="copyLink" style="border:1px solid var(--line);">复制邀请链接</button>`;
+      $("#copyLink").addEventListener("click", () => { navigator.clipboard?.writeText(u.toString()); setStatus("邀请链接已复制，发给候选人即可入会。"); });
+    } else {
+      setStatus("已入会，等待面试官开始面试。实时字幕进行中。");
+    }
+
+    connectASR(asr.url, stream);
+  } catch (e) { setError("启动失败：" + e.message); }
+  busy = false; $("#startBtn").disabled = false;
+});
+
+// 结束
+$("#stopBtn").addEventListener("click", async () => {
+  busy = true; $("#stopBtn").disabled = true;
+  setStatus("④ 正在结束：停止转写 → 退房 → 停止录制 → 生成评价…");
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    const header = new ArrayBuffer(4); const dv = new DataView(header);
+    dv.setUint16(0, ++seq, false); dv.setUint8(2, 0); dv.setUint8(3, 1);
+    ws.send(new Uint8Array(header)); ws.close();
+  }
+  if (assistTimer) { clearInterval(assistTimer); assistTimer = null; }
+  if (trtc) { try { await trtc.exitRoom(); } catch {} trtc = null; }
+  if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
+  if (audioCtx) { try { audioCtx.close(); } catch {} audioCtx = null; }
+  $("#localVideo").srcObject = null; $("#remoteVideo").srcObject = null;
+
+  if (role === "candidate") {
+    joined = false; $("#stopBtn").disabled = true; $("#startBtn").textContent = "进入面试间";
+    setStatus("你已退出面试间。面试评价将由面试官在结束后生成并回写飞书。");
+    busy = false; return;
+  }
+
+  if (taskId) {
+    try { await fetch(`${API_BASE}/video/recording/stop`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ task_id: taskId }) }).then((x) => x.json()); setStatus("④ 录制已停止。⑤ 正在生成评价（文件识别 + 评分 + 写飞书）…"); }
+    catch (e) { setStatus("④ ⚠ 停止录制异常，仍尝试生成评价…"); }
+  }
+  await runEvaluation();
+  joined = false; $("#stopBtn").disabled = true; $("#startBtn").textContent = "开始面试";
+  busy = false;
+});
+
+async function runEvaluation() {
+  try {
+    if (taskId || roomId != null) {
+      const r = await fetch(`${API_BASE}/video/recording/process`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ room_id: roomId ?? undefined, candidate: candidateId, candidate_id: candidateId, family_key: familyKey, hr_user_id: hrUid, candidate_user_id: candUid, track_mode: "separate", write_feishu: true }) }).then((x) => x.json());
+      if (r.success) { renderEval(r.evaluation); setStatus("✅ 评价已生成并回写飞书「面试记录」表（云端录制→文件识别→评分）。"); return; }
+      throw new Error(r.error || "process 失败");
+    }
+    throw new Error("无录制任务");
+  } catch (e) {
+    setStatus(`⚠ 云端录制后处理失败（${e.message}），尝试用本地转写兜底回写飞书…`);
+    try {
+      const r2 = await fetch(`${API_BASE}/video/report`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ candidate: candidateId, candidate_id: candidateId, family_key: familyKey, speaker_transcript: [{ speaker: role === "hr" ? "HR" : "候选人", text: transcriptText.trim() }] }) }).then((x) => x.json());
+      if (r2.success) { renderEval(r2.evaluation); setStatus("✅ 已用本地转写兜底回写飞书「面试记录」表（无云端录制源）。"); return; }
+      setError("回写失败：" + (r2.error || "未知"));
+    } catch (e2) { setError("兜底回写异常：" + e2.message); }
+  }
+}
+
+function renderEval(ev) {
+  if (!ev) return;
+  $("#evalBox").style.display = "block";
+  const dims = (ev.dimensionScores || []).map((d) => `<li>${d.dim}：<b>${d.score ?? "-"}</b>分（${d.state || "-"}）${d.evidence ? "— " + d.evidence : ""}</li>`).join("");
+  const flags = ev.complianceFlags || [];
+  $("#evalContent").innerHTML = `
+    <div class="row" style="margin-bottom:10px;">
+      <span class="badge">综合评级 <b>${ev.overallRating ?? "-"}</b> / 10</span>
+      <span style="font-size:13px;"><b>录用建议（AI 辅助，不替决策）</b>：${ev.hiringSuggestion || "-"}</span>
+    </div>
+    <div class="grid2">
+      <div><b style="font-size:13px;">维度分</b><ul style="margin:6px 0 0;padding-left:20px;font-size:13px;line-height:1.8;">${dims || "<li>-</li>"}</ul></div>
+      <div style="font-size:13px;"><b>合规预警</b>：${flags.length ? flags.join("；") : "无"}<div style="margin-top:8px;"><b>面试纪要</b>：${ev.transcriptSummary || "-"}</div></div>
+    </div>`;
+}
+
+// 初始
+updateRoleUI();
+if (role === "candidate" && candidateId) checkEligibility(candidateId);
+</script>
+</body>
+</html>
